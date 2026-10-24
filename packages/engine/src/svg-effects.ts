@@ -39,10 +39,20 @@ export interface EffectCtx {
   shader: Shader;
 }
 
-/** A light pool: an ellipse of `rx` by `ry` metres in `color`; `flicker` animates its brightness. */
-export function glowHalo(x: number, y: number, rx: number, ry: number, strength: number, color: RGB, fx: EffectCtx, flicker = false): string {
+/** How a light pool moves over time. */
+export type GlowMotion = 'steady' | 'flicker' | 'blink';
+
+function glowAnimation(motion: GlowMotion, strength: number, phase: number, animate: boolean): string {
+  if (!animate || motion === 'steady') return '';
   const op = (v: number) => (v * strength).toFixed(2);
-  const anim = flicker && fx.animate ? `<animate attributeName="opacity" values="${op(1)};${op(0.72)};${op(1.05)};${op(0.88)}" dur="${(1.7 + (Math.abs(x) % 1)).toFixed(2)}s" repeatCount="indefinite"/>` : '';
+  if (motion === 'blink') return `<animate attributeName="opacity" values="${op(1)};${op(0.05)}" calcMode="discrete" dur="${(1.2 + phase * 0.6).toFixed(2)}s" repeatCount="indefinite"/>`;
+  return `<animate attributeName="opacity" values="${op(1)};${op(0.72)};${op(1.05)};${op(0.88)}" dur="${(1.7 + phase).toFixed(2)}s" repeatCount="indefinite"/>`;
+}
+
+/** A light pool: an ellipse of `rx` by `ry` metres in `color`, steady, flickering or blinking. */
+export function glowHalo(x: number, y: number, rx: number, ry: number, strength: number, color: RGB, fx: EffectCtx, motion: GlowMotion = 'steady'): string {
+  const op = (v: number) => (v * strength).toFixed(2);
+  const anim = glowAnimation(motion, strength, Math.abs(x) % 1, fx.animate);
   return `<ellipse cx="${(x * fx.px).toFixed(1)}" cy="${(y * fx.px).toFixed(1)}" rx="${(rx * fx.px).toFixed(1)}" ry="${(ry * fx.px).toFixed(1)}" fill="url(#${fx.glows.id(color)})" opacity="${op(1)}">${anim}</ellipse>`;
 }
 
@@ -76,13 +86,14 @@ export function smokePuffs(x: number, y: number, puffs: number, fx: EffectCtx): 
   return out;
 }
 
-/** Render one anchor's effect; returns [effect markup, glow markup]. A glow anchor may name its material in `data.mat`. */
+/** Render one anchor's effect; returns [effect markup, glow markup]. A glow anchor may name its material in `data.mat` and set `data.blink` to blink instead of flicker. */
 export function anchorEffect(a: Anchor, x: number, y: number, fx: EffectCtx): [string, string] {
   if (a.kind === 'smoke') return [smokePuffs(x, y, Number(a.data?.puffs ?? 3), fx), ''];
   if (a.kind === 'glow' && fx.night > 0.05) {
     const r = Number(a.data?.r ?? 1);
     const color = (typeof a.data?.mat === 'string' ? fx.shader.litColor(a.data.mat) : undefined) ?? WARM;
-    return ['', glowHalo(x, y, r, r * 0.78, 0.9 * fx.night, color, fx, true)];
+    const motion: GlowMotion = a.data?.blink ? 'blink' : 'flicker';
+    return ['', glowHalo(x, y, r, r * 0.78, 0.9 * fx.night, color, fx, motion)];
   }
   return ['', ''];
 }

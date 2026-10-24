@@ -22,6 +22,11 @@ Look up any address and you find a plot with a home on it. Stay active and the h
 
 All of those plots together make a city that grows outward, week by week, from the oldest wallets at its centre.
 
+<div align="center">
+<img src="docs/range-mainland.svg" alt="Left: a tent on an empty concrete lot. Right: a neon tower surrounded by vending machines, a stall, holo frames, a cargo dock, a server shed and an antenna tower" width="100%">
+<br><sub>A newcomer's empty lot next to a veteran's plot. Every object on the right was earned on-chain.</sub>
+</div>
+
 ## Two lands, two futures
 
 **The Mainland is Neo N3:** a weathered neon city of concrete, cables and signs, alive wherever its residents are. Homes grow from a squatter's tent to a container shack, a walk-up, a tower house and finally a neon tower, while an antenna mast grows beside them into a lattice tower with a blinking light. Wallets from the Antshares days fly a heritage flag.
