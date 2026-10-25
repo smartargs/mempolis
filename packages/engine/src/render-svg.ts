@@ -30,6 +30,8 @@ export interface SvgOpts {
   headroom?: number;
   /** Shared bounds so several renders line up at one scale. */
   bounds?: Bounds;
+  /** Strength of the night halos around lit faces, 1 by default; lower it for small figures whose lights should not bloom. */
+  glow?: number;
   /** Animate smoke and flicker with SMIL. */
   animate?: boolean;
   className?: string;
@@ -44,12 +46,12 @@ function polygon(f: Face, fill: string, px: number): string {
   return `<polygon points="${pts}" fill="${fill}" stroke="${fill}" stroke-width="0.6" stroke-linejoin="round"${f.alpha != null ? ` opacity="${f.alpha}"` : ''}/>`;
 }
 
-function emissiveHalo(f: Face, fx: EffectCtx, glow?: [number, number, number]): string {
+function emissiveHalo(f: Face, fx: EffectCtx, strength: number, glow?: [number, number, number]): string {
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (const p of f.pts) { const [x, y] = project(p); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
   const color = glow ? hslToRgb(...glow) : fx.shader.litColor(f.mat) ?? DEFAULT_GLOW;
   const rx = Math.min((x1 - x0) / 2 + HALO_PAD[0], HALO_MAX[0]), ry = Math.min((y1 - y0) / 2 + HALO_PAD[1], HALO_MAX[1]);
-  return glowHalo((x0 + x1) / 2, (y0 + y1) / 2, rx, ry, (f.emit ?? 0) * fx.night * 0.85, color, fx);
+  return glowHalo((x0 + x1) / 2, (y0 + y1) / 2, rx, ry, (f.emit ?? 0) * fx.night * 0.85 * strength, color, fx);
 }
 
 const LOGO_NIGHT_DIM = 0.5;
@@ -77,7 +79,7 @@ export function renderSVG(dl: DisplayList, style: StyleDef, region: Region, o: S
   for (const f of dl.faces) {
     faces.push(f.logo ? logoMarkup(f, style.logos?.[f.logo], px, night) : polygon(f, rgbCss(shader.color(f)), px));
     const glow = f.logo ? style.logos?.[f.logo]?.glow : undefined;
-    if (f.emit && night > 0.05 && (!f.logo || glow)) halos.push(emissiveHalo(f, fx, glow));
+    if (f.emit && night > 0.05 && (!f.logo || glow)) halos.push(emissiveHalo(f, fx, o.glow ?? 1, glow));
   }
   for (const a of dl.anchors) {
     const [x, y] = project(a.at);
