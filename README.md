@@ -6,6 +6,8 @@
 
 Every wallet has a home waiting. Its on-chain history decides what that home looks like.
 
+**[mempolis.com](https://mempolis.com)**
+
 <img src="docs/hero-sprawl-night.svg" alt="A neon tower house in the Sprawl at night, with an antenna tower and a heritage flag" width="49%"> <img src="docs/hero-array-day.svg" alt="A machine hub in the Array by day, with a fibre-optic tree, server cabinets and a force-field fence" width="49%">
 
 <sub>Left: the Sprawl on Neo N3, at night. Right: the Array on Neo X, by day.</sub>
@@ -97,5 +99,5 @@ The look of the first two cities is set, and the homes, residents and live previ
 Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
 <div align="center">
-<sub>Made by <a href="https://smartargs.com">SmartArgs</a>.</sub>
+<sub><a href="https://mempolis.com">mempolis.com</a> · Made by <a href="https://smartargs.com">SmartArgs</a>.</sub>
 </div>
