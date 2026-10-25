@@ -93,7 +93,7 @@ export function renderSVG(dl: DisplayList, style: StyleDef, region: Region, o: S
   dl.faces.forEach((f, i) => {
     let out = before[i] + (f.logo ? logoMarkup(f, style.logos?.[f.logo], px, night) : polygon(f, rgbCss(shader.color(f)), px));
     const glow = f.logo ? style.logos?.[f.logo]?.glow : undefined;
-    if (f.emit && night > 0.05 && (!f.logo || glow)) out += screen(emissiveHalo(f, fx, o.glow ?? 1, glow));
+    if (f.emit && night > 0.05 && (o.glow ?? 1) > 0 && (!f.logo || glow)) out += screen(emissiveHalo(f, fx, o.glow ?? 1, glow));
     faces.push(out);
   });
   const x0 = (bb.x0 - pad) * px, y0 = (bb.y0 - pad - headroom) * px, w = (bb.x1 - bb.x0 + 2 * pad) * px, h = (bb.y1 - bb.y0 + 2 * pad + headroom) * px;
