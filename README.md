@@ -33,7 +33,7 @@ The city only holds homes their owners chose to place, so it grows street by str
 
 Each chain gets its own city with its own look, built on the same engine. The first two:
 
-**The Sprawl, on Neo N3:** a weathered neon city of concrete, cables and signs, alive wherever its residents are. Homes grow from a squatter's tent to a container shack, a walk-up, a tower house and a neon tower, with an antenna mast rising beside them.
+**The Sprawl, on Neo N3:** a weathered neon city of concrete, cables and signs, alive wherever its residents are. Homes grow from a squatter's tent to a container shack, an apartment block, a tower house and a neon tower, with an antenna mast rising beside them.
 
 <div align="center">
 <img src="docs/growth-sprawl.svg" alt="Five Sprawl plots at night, from a tent to a neon tower" width="100%">
