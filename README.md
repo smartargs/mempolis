@@ -4,7 +4,7 @@
 
 **A living, hand-coded isometric world that grows from activity on Neo N3 and Neo X.**
 
-Every wallet already has a home. Its history decides what that home looks like.
+Every wallet has a home waiting. Its history decides what that home looks like.
 
 <img src="docs/hero-mainland-night.svg" alt="A neon tower house on the Mainland at night, with an antenna tower and a heritage flag" width="49%"> <img src="docs/hero-coast-day.svg" alt="A white futuristic hub on the Coast with a palm, glass balustrade and solar roof" width="49%">
 
@@ -18,9 +18,9 @@ Every wallet already has a home. Its history decides what that home looks like.
 
 Blockchains are full of stories that nobody can see. Neo World turns them into a place.
 
-Look up any address and you find a plot with a home on it. Stay active and the home grows, from a tent to a tower. Hold for years and your landmark rises taller. Vote, build, collect, and the plot shows it. Go quiet and the plot goes dark, then lights up again when you return.
+Look up any address and you see the home its history would build. Claim it, and it moves into the city. Stay active and the home grows, from a tent to a tower. Hold for years and your landmark rises taller. Vote, build, collect, and the plot shows it. Go quiet and the plot goes dark, then lights up again when you return.
 
-All of those plots together make a city that grows outward, week by week, from the oldest wallets at its centre.
+The city only holds homes their owners chose to place, so it grows slowly, street by street. The oldest wallets settle in the old town at its centre, and the first to claim get the best streets of their district.
 
 <div align="center">
 <img src="docs/range-mainland.svg" alt="Left: a tent on an empty concrete lot. Right: a neon tower surrounded by vending machines, a stall, holo frames, a cargo dock, a server shed and an antenna tower" width="100%">
