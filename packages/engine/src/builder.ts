@@ -1,4 +1,4 @@
-import { avg, dot, faceNormal, mulberry32, neg, norm, sub, type Rng, type Vec3 } from './math.ts';
+import { avg, cross, dot, faceNormal, mulberry32, neg, norm, sub, type Rng, type Vec3 } from './math.ts';
 import { paintOrder, type Layer, type PaintGroup } from './paint-order.ts';
 import { VIEW, depthOf } from './projection.ts';
 import { TransformStack } from './transform.ts';
@@ -93,10 +93,11 @@ export class Builder {
   /**
    * Show logo `id` flat across a local quad whose corners run top-left, top-right, bottom-right, bottom-left as seen
    * from the front. Pass `decalOf` with the handle of the surface it sits on to paint it right after that surface;
-   * `emit` makes it a lit sign at night. Returns a handle, or -1 when the quad faces away.
+   * `emit` makes it a lit sign at night. Returns a handle, or -1 when the front faces away from the camera.
    */
   logo(corners: [Vec3, Vec3, Vec3, Vec3], id: string, o: { emit?: number; alpha?: number; decalOf?: number } = {}): number {
-    return this.face(corners, 'logo', { ...o, logo: id, tone: 0 });
+    const [tl, tr, , bl] = corners;
+    return this.face(corners, 'logo', { ...o, logo: id, tone: 0, n: norm(cross(sub(tr, tl), sub(bl, tl))) });
   }
 
   /** Attach an animation anchor at a local point. */

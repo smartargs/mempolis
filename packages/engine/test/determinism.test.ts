@@ -71,10 +71,16 @@ test('rendering the same display list gives the same SVG apart from effect ids',
 test('a logo face draws its mark across the projected quad, dimmed at night unless lit', () => {
   const branded: StyleDef = { ...style, logos: { mark: { w: 10, h: 5, svg: '<rect width="10" height="5" fill="#00e599"/>' } } };
   const b = new Builder({ seed: 1 });
-  b.logo([[2, 0, 2], [0, 2, 2], [0, 2, 1], [2, 0, 1]], 'mark');
+  b.logo([[0, 2, 2], [2, 0, 2], [2, 0, 1], [0, 2, 1]], 'mark');
   const dl = b.build();
   assert.equal(dl.faces[0].logo, 'mark');
   const day = renderSVG(dl, branded, 'n3', { night: 0 }), night = renderSVG(dl, branded, 'n3', { night: 1 });
   assert.match(day, /<g transform="matrix\([^)]+\)"><rect width="10" height="5" fill="#00e599"\/><\/g>/);
   assert.match(night, /fill="rgb\(6,8,16\)" opacity="0.50"/);
+});
+
+test('a logo whose front faces away from the camera is not drawn', () => {
+  const b = new Builder({ seed: 1 });
+  assert.ok(b.logo([[2, 0, 2], [0, 2, 2], [0, 2, 1], [2, 0, 1]], 'mark') < 0);
+  assert.ok(b.logo([[0, 2, 2], [2, 0, 2], [2, 0, 1], [0, 2, 1]], 'mark') >= 0);
 });

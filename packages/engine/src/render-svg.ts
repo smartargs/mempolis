@@ -1,5 +1,5 @@
 import { project } from './projection.ts';
-import { Shader, rgbCss } from './shade.ts';
+import { Shader, hslToRgb, rgbCss } from './shade.ts';
 import { DEFAULT_GLOW, GlowPalette, anchorEffect, glowHalo, type EffectCtx } from './svg-effects.ts';
 import type { DisplayList, Face, LogoDef, Region, StyleDef } from './types.ts';
 
@@ -44,10 +44,10 @@ function polygon(f: Face, fill: string, px: number): string {
   return `<polygon points="${pts}" fill="${fill}" stroke="${fill}" stroke-width="0.6" stroke-linejoin="round"${f.alpha != null ? ` opacity="${f.alpha}"` : ''}/>`;
 }
 
-function emissiveHalo(f: Face, fx: EffectCtx): string {
+function emissiveHalo(f: Face, fx: EffectCtx, glow?: [number, number, number]): string {
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (const p of f.pts) { const [x, y] = project(p); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-  const color = fx.shader.litColor(f.mat) ?? DEFAULT_GLOW;
+  const color = glow ? hslToRgb(...glow) : fx.shader.litColor(f.mat) ?? DEFAULT_GLOW;
   return glowHalo((x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2 + 0.35, (y1 - y0) / 2 + 0.3, (f.emit ?? 0) * fx.night * 0.85, color, fx);
 }
 
@@ -72,7 +72,8 @@ export function renderSVG(dl: DisplayList, style: StyleDef, region: Region, o: S
   const faces: string[] = [], halos: string[] = [], effects: string[] = [];
   for (const f of dl.faces) {
     faces.push(f.logo ? logoMarkup(f, style.logos?.[f.logo], px, night) : polygon(f, rgbCss(shader.color(f)), px));
-    if (f.emit && night > 0.05) halos.push(emissiveHalo(f, fx));
+    const glow = f.logo ? style.logos?.[f.logo]?.glow : undefined;
+    if (f.emit && night > 0.05 && (!f.logo || glow)) halos.push(emissiveHalo(f, fx, glow));
   }
   for (const a of dl.anchors) {
     const [x, y] = project(a.at);

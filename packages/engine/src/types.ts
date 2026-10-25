@@ -48,8 +48,11 @@ export interface Material {
   lit?: [number, number, number];
 }
 
-/** A flat brand mark: inner SVG markup in a `w` × `h` box, with flat fills only (no ids, gradients, text or links). */
-export interface LogoDef { w: number; h: number; svg: string }
+/**
+ * A flat brand mark: inner SVG markup in a `w` × `h` box, with flat fills only (no ids, gradients, text or links).
+ * `glow` (HSL) is the colour a lit sign bleeds at night; without it a lit logo casts no halo.
+ */
+export interface LogoDef { w: number; h: number; svg: string; glow?: [number, number, number] }
 
 export interface StyleDef {
   id: string;
