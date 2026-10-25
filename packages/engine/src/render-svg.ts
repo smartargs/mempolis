@@ -30,7 +30,7 @@ export interface SvgOpts {
   headroom?: number;
   /** Shared bounds so several renders line up at one scale. */
   bounds?: Bounds;
-  /** Strength of the night halos around lit faces, 1 by default; lower it for small figures whose lights should not bloom. */
+  /** Strength of the night halos around lit faces, 1 by default; lower it for small figures whose lights should not bloom, 0 drops every halo. */
   glow?: number;
   /** Animate smoke and flicker with SMIL. */
   animate?: boolean;
@@ -87,7 +87,7 @@ export function renderSVG(dl: DisplayList, style: StyleDef, region: Region, o: S
     const [x, y] = project(a.at);
     const [effect, glow] = anchorEffect(a, x, y, fx);
     effects.push(effect);
-    if (!glow) continue;
+    if (!glow || (o.glow ?? 1) <= 0) continue;
     if (a.after === undefined || a.after >= dl.faces.length) loose.push(glow); else before[a.after] += screen(glow);
   }
   dl.faces.forEach((f, i) => {
