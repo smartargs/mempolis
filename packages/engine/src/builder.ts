@@ -4,6 +4,9 @@ import { VIEW, depthOf } from './projection.ts';
 import { TransformStack } from './transform.ts';
 import type { Anchor, DisplayList } from './types.ts';
 
+/** How far apart the groups inside one stack may sort, relative to their own depths; small enough that stacks never interleave. */
+const STACK_SPREAD = 1e-4;
+
 /** Options for a single face. */
 export interface FaceOpts {
   /** Normal in local space; skips automatic normal computation. */
@@ -39,6 +42,7 @@ export class Builder {
   private decalCount = 0;
   private fadeWeight = 1;
   private partId: number | undefined;
+  private band: number | undefined;
 
   constructor(opts: { seed: number; rot?: number; at?: Vec3 }) {
     this.rng = mulberry32(opts.seed);
@@ -60,10 +64,21 @@ export class Builder {
   /** Group the faces added inside `fn`; `pivot` (local) places the group in paint order. */
   object(pivot: Vec3, fn: () => void, opts: { layer?: Layer; ordered?: boolean } = {}) {
     const previous = this.current;
-    const group: PaintGroup = { layer: opts.layer ?? 'object', depth: depthOf(this.tf(pivot)), ordered: !!opts.ordered, faces: [] };
+    const group: PaintGroup = { layer: opts.layer ?? 'object', depth: this.groupDepth(depthOf(this.tf(pivot))), ordered: !!opts.ordered, faces: [] };
     this.groups.push(group);
     this.current = group;
     try { fn(); } finally { this.current = previous; }
+  }
+
+  /**
+   * Paint everything `fn` adds as one unit at the depth of the local point `at`: its groups keep their order among
+   * themselves but all sort as if they stood at `at`. Use it for a lot or a building on a grid, so tall parts of a
+   * unit behind can never be painted over a unit in front.
+   */
+  stack(at: Vec3, fn: () => void) {
+    const previous = this.band;
+    this.band = depthOf(this.tf(at));
+    try { fn(); } finally { this.band = previous; }
   }
 
   /** Run `fn` with a fade weight applied to every face it adds. */
@@ -129,8 +144,12 @@ export class Builder {
     return r < 0.18 ? -1 : r > 0.82 ? 1 : 0;
   }
 
+  private groupDepth(raw: number): number {
+    return this.band === undefined ? raw : this.band + raw * STACK_SPREAD;
+  }
+
   private standaloneGroup(world: Vec3[]): PaintGroup {
-    const group: PaintGroup = { layer: 'object', depth: depthOf(avg(world)), ordered: false, faces: [] };
+    const group: PaintGroup = { layer: 'object', depth: this.groupDepth(depthOf(avg(world))), ordered: false, faces: [] };
     this.groups.push(group);
     return group;
   }
