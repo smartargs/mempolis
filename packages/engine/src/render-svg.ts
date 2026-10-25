@@ -48,10 +48,14 @@ function emissiveHalo(f: Face, fx: EffectCtx, glow?: [number, number, number]): 
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (const p of f.pts) { const [x, y] = project(p); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
   const color = glow ? hslToRgb(...glow) : fx.shader.litColor(f.mat) ?? DEFAULT_GLOW;
-  return glowHalo((x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2 + 0.35, (y1 - y0) / 2 + 0.3, (f.emit ?? 0) * fx.night * 0.85, color, fx);
+  const rx = Math.min((x1 - x0) / 2 + HALO_PAD[0], HALO_MAX[0]), ry = Math.min((y1 - y0) / 2 + HALO_PAD[1], HALO_MAX[1]);
+  return glowHalo((x0 + x1) / 2, (y0 + y1) / 2, rx, ry, (f.emit ?? 0) * fx.night * 0.85, color, fx);
 }
 
 const LOGO_NIGHT_DIM = 0.5;
+/** How far a lit face's halo reaches past its outline, and the most it may spread, in screen metres. */
+const HALO_PAD: readonly [number, number] = [0.35, 0.3];
+const HALO_MAX: readonly [number, number] = [1.6, 1.2];
 
 function logoMarkup(f: Face, def: LogoDef | undefined, px: number, night: number): string {
   if (!def || f.pts.length < 4) return '';
