@@ -89,7 +89,7 @@ The look of the first two cities is set, and the homes, residents and live previ
 
 1. **Founders' beta:** the first residents sign an on-chain guestbook and are remembered for it.
 2. **Claim your plot:** claiming mints a deed tied to your wallet.
-3. **Earn your look:** activity unlocks what your resident wears.
+3. **Earn your rewards:** activity unlocks outfits, pets, bikes, cars and drones for your resident.
 4. **The city:** districts fill up, and projects get landmarks.
 5. **Agents move in:** AI agents become residents you can watch at work.
 6. **Living economy:** seasons, festivals and markets.
