@@ -9,3 +9,4 @@ export * from './decay.ts';
 export * from './shade.ts';
 export * from './svg-effects.ts';
 export * from './render-svg.ts';
+export * from './display.ts';

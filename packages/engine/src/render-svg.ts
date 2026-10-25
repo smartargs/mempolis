@@ -69,26 +69,36 @@ function logoMarkup(f: Face, def: LogoDef | undefined, px: number, night: number
   return `<g transform="matrix(${m.map(v => v.toFixed(4)).join(' ')})"${opacity}>${def.svg}${shade}</g>`;
 }
 
+/**
+ * Wrap night glow so it brightens what lies beneath it. Each glow is painted right after its own face, or for an
+ * anchor at its place in the paint order, so anything painted later in front of it, such as a nearer building,
+ * covers it.
+ */
+const screen = (markup: string) => `<g style="mix-blend-mode:screen">${markup}</g>`;
+
 /** Render a display list to a standalone SVG string. */
 export function renderSVG(dl: DisplayList, style: StyleDef, region: Region, o: SvgOpts = {}): string {
   const px = o.px ?? 24, pad = o.pad ?? 0.6, headroom = o.headroom ?? 3, night = o.night ?? 0;
   const bb = o.bounds ?? boundsOf(dl);
   const shader = new Shader(style, region, { night, fade: o.fade });
   const fx: EffectCtx = { px, night, animate: !!o.animate, glows: new GlowPalette(`glow${++renderCount}`), shader };
-  const faces: string[] = [], halos: string[] = [], effects: string[] = [];
-  for (const f of dl.faces) {
-    faces.push(f.logo ? logoMarkup(f, style.logos?.[f.logo], px, night) : polygon(f, rgbCss(shader.color(f)), px));
-    const glow = f.logo ? style.logos?.[f.logo]?.glow : undefined;
-    if (f.emit && night > 0.05 && (!f.logo || glow)) halos.push(emissiveHalo(f, fx, o.glow ?? 1, glow));
-  }
+  const faces: string[] = [], effects: string[] = [], loose: string[] = [], before: string[] = dl.faces.map(() => '');
   for (const a of dl.anchors) {
     const [x, y] = project(a.at);
     const [effect, glow] = anchorEffect(a, x, y, fx);
-    effects.push(effect); halos.push(glow);
+    effects.push(effect);
+    if (!glow) continue;
+    if (a.after === undefined || a.after >= dl.faces.length) loose.push(glow); else before[a.after] += screen(glow);
   }
+  dl.faces.forEach((f, i) => {
+    let out = before[i] + (f.logo ? logoMarkup(f, style.logos?.[f.logo], px, night) : polygon(f, rgbCss(shader.color(f)), px));
+    const glow = f.logo ? style.logos?.[f.logo]?.glow : undefined;
+    if (f.emit && night > 0.05 && (!f.logo || glow)) out += screen(emissiveHalo(f, fx, o.glow ?? 1, glow));
+    faces.push(out);
+  });
   const x0 = (bb.x0 - pad) * px, y0 = (bb.y0 - pad - headroom) * px, w = (bb.x1 - bb.x0 + 2 * pad) * px, h = (bb.y1 - bb.y0 + 2 * pad + headroom) * px;
   const size = o.size ? ` width="${w.toFixed(0)}" height="${h.toFixed(0)}"` : '';
   const cls = o.className ? ` class="${o.className}"` : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0.toFixed(1)} ${y0.toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}"${size}${cls}>`
-    + `<defs>${fx.glows.defs()}</defs>${faces.join('')}<g style="mix-blend-mode:screen">${halos.join('')}</g>${effects.join('')}</svg>`;
+    + `<defs>${fx.glows.defs()}</defs>${faces.join('')}${loose.length ? screen(loose.join('')) : ''}${effects.join('')}</svg>`;
 }

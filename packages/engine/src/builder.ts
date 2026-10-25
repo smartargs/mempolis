@@ -1,5 +1,5 @@
 import { avg, cross, dot, faceNormal, mulberry32, neg, norm, sub, type Rng, type Vec3 } from './math.ts';
-import { paintOrder, type Layer, type PaintGroup } from './paint-order.ts';
+import { paintLayout, type Layer, type PaintGroup } from './paint-order.ts';
 import { VIEW, depthOf } from './projection.ts';
 import { TransformStack } from './transform.ts';
 import type { Anchor, DisplayList } from './types.ts';
@@ -117,12 +117,15 @@ export class Builder {
 
   /** Attach an animation anchor at a local point. */
   anchor(kind: string, at: Vec3, data?: Anchor['data']) {
-    this.anchors.push({ kind, at: this.tf(at), data, part: this.partId });
+    const anchor: Anchor = { kind, at: this.tf(at), data, part: this.partId };
+    this.anchors.push(anchor);
+    const group = this.current ?? this.anchorGroup(anchor.at);
+    (group.anchors ??= []).push(anchor);
   }
 
   /** Finish and return faces in paint order plus anchors. */
   build(): DisplayList {
-    return { faces: paintOrder(this.groups), anchors: this.anchors };
+    return paintLayout(this.groups);
   }
 
   private orientNormal(world: Vec3[], o: FaceOpts): Vec3 | null {
@@ -146,6 +149,12 @@ export class Builder {
 
   private groupDepth(raw: number): number {
     return this.band === undefined ? raw : this.band + raw * STACK_SPREAD;
+  }
+
+  private anchorGroup(at: Vec3): PaintGroup {
+    const group: PaintGroup = { layer: 'object', depth: this.groupDepth(depthOf(at)), ordered: true, faces: [] };
+    this.groups.push(group);
+    return group;
   }
 
   private standaloneGroup(world: Vec3[]): PaintGroup {

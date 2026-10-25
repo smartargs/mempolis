@@ -29,6 +29,8 @@ export interface Anchor {
   data?: Record<string, number | string>;
   /** Id of the part this anchor was built under (see `Builder.part`). */
   part?: number;
+  /** How many faces of the display list paint before this anchor's effect, so nearer faces cover it. */
+  after?: number;
 }
 
 export interface DisplayList {

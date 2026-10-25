@@ -84,3 +84,12 @@ test('a logo whose front faces away from the camera is not drawn', () => {
   assert.ok(b.logo([[2, 0, 2], [0, 2, 2], [0, 2, 1], [2, 0, 1]], 'mark') < 0);
   assert.ok(b.logo([[0, 2, 2], [2, 0, 2], [2, 0, 1], [0, 2, 1]], 'mark') >= 0);
 });
+
+test('a light behind a nearer wall glows before the wall, so the wall covers its glow', () => {
+  const b = new Builder({ seed: 1 });
+  b.object([0, 0, 0], () => b.anchor('glow', [0, 0, 1], { r: 1 }));
+  b.object([3, 3, 0], () => box(b, [2, 2, 0], [4, 4, 3], 'wall'));
+  const dl = b.build(), svg = renderSVG(dl, style, 'n3', { night: 1 });
+  assert.equal(dl.anchors[0].after, 0);
+  assert.ok(svg.indexOf('<ellipse') < svg.indexOf('<polygon'), 'the glow paints before the wall in front of it');
+});
