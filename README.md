@@ -62,7 +62,6 @@ Every resident gets a character to walk their streets: a street punk in the Spra
 | **Earned, not bought** | Size, age and status come from real on-chain history. Money can buy style, never rank. |
 | **Drawn entirely in code** | No sprites, no asset packs. Every building, mast and character is generated, so the world can grow without limit in one consistent style. |
 | **Verifiable** | The same input always draws the same plot. Anyone can re-render a plot from public data and check it. |
-| **Privacy first** | Balances stay hidden until a wallet's owner claims their plot, and owners can hide them again at any time. |
 | **Honest about time** | Long-held, long-active wallets show it. Quiet plots fade a little; nothing earned is ever taken away. |
 
 ## What is in this repository
