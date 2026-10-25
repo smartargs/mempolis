@@ -1,10 +1,16 @@
 import type { Transport } from './transport.ts';
-import type { AccountIdentity, AccountSummary, ActivityEvent, ActivityFeed, Holder, IndexStatus, Page, TokenBalance, Transfer, Voter } from './types.ts';
+import type { AccountIdentity, AccountSummary, ActivityEvent, ActivityFeed, ContractNotification, Holder, IndexStatus, Page, TokenBalance, Transfer, Voter } from './types.ts';
 
 interface Wrapped<T> { data: T; paging?: { has_more?: boolean; total?: number; next_cursor?: { block_index: number; event_key: string } }; meta?: { total?: number } }
 type Row = Record<string, any>;
 
 const PAGE = 200;
+const TXIDS_PER_QUERY = 40;
+
+const toNotification = (r: Row): ContractNotification => ({
+  txid: r.txid, blockIndex: r.block_index, timestampMs: r.block_time_ms, contract: r.contract_hash, event: r.event_name,
+  state: r.state_json?.value ?? [],
+});
 
 const toTransfer = (r: Row): Transfer => ({
   txid: r.txid, blockIndex: r.block_index, timestampMs: r.timestamp_ms, contract: r.contract_hash,
@@ -82,9 +88,9 @@ export class N3Index {
   /**
    * The full oldest-first activity feed (transactions plus NEP-17/NEP-11 transfers), up to `maxPages` pages.
    * The API sometimes restarts from the beginning instead of following the cursor near the end of a feed;
-   * such pages are detected and fetched again with a smaller limit.
+   * such pages are detected and fetched again with a smaller limit. `onPage` hears the running event count.
    */
-  async activity(address: string, o: { maxPages?: number } = {}): Promise<ActivityFeed> {
+  async activity(address: string, o: { maxPages?: number; onPage?: (events: number) => void } = {}): Promise<ActivityFeed> {
     const events: ActivityEvent[] = [], seen = new Set<string>();
     let block = -1, key = '', limit = PAGE, pages = 0;
     while (pages < (o.maxPages ?? 40)) {
@@ -97,6 +103,7 @@ export class N3Index {
       }
       pages++;
       for (const e of rows) { seen.add(e.event_key); events.push(toEvent(e)); }
+      o.onPage?.(events.length);
       const next = r?.paging?.next_cursor;
       if (!r?.paging?.has_more || !next) return { events, complete: true };
       block = next.block_index;
@@ -133,6 +140,22 @@ export class N3Index {
   async nnsDomains(o: { limit?: number; offset?: number } = {}): Promise<{ domain: string; address: string }[]> {
     const r = await this.http.get<Wrapped<Row[]>>(`${this.base}/nns/domains?limit=${o.limit ?? 200}&offset=${o.offset ?? 0}`);
     return (r?.data ?? []).map(d => ({ domain: d.domain, address: d.address }));
+  }
+
+  /**
+   * Contract notifications emitted by the given transactions, optionally only events named in `events`,
+   * oldest first. Transactions are looked up in batches of 40, at most `maxQueries` batches (all by default);
+   * `complete` is false when the cap left some unread.
+   */
+  async notifications(txids: string[], o: { events?: string[]; maxQueries?: number } = {}): Promise<{ items: ContractNotification[]; complete: boolean }> {
+    const unique = [...new Set(txids)], batches: string[][] = [];
+    for (let i = 0; i < unique.length; i += TXIDS_PER_QUERY) batches.push(unique.slice(i, i + TXIDS_PER_QUERY));
+    const read = batches.slice(0, o.maxQueries ?? batches.length), events = o.events?.length ? `&event_name=in.(${o.events.join(',')})` : '';
+    const select = 'select=txid,block_index,block_time_ms,contract_hash,event_name,notification_index,state_json';
+    const pages = await Promise.all(read.map(batch =>
+      this.http.get<Row[]>(`${this.root}/rest/v1/contract_notifications?network=eq.${this.network}&txid=in.(${batch.join(',')})${events}&${select}&limit=1000`)));
+    const rows = pages.flatMap(p => p ?? []).sort((a, b) => a.block_index - b.block_index || a.notification_index - b.notification_index);
+    return { items: rows.map(toNotification), complete: read.length === batches.length };
   }
 
   /** Latest NEP-17 transfers across the chain, newest first, optionally for one token. Not cached unless `cache` is true. */

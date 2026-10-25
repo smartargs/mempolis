@@ -1,4 +1,4 @@
-import { blob, box, facetedPlane, gableRoof, prism, wallRect, type ArtPack, type Asset, type Material, type StyleDef } from '@neoworld/engine';
+import { blob, box, facetedPlane, gableRoof, prism, wallRect, type ArtPack, type Asset, type Material, type StyleDef } from '@mempolis/engine';
 
 const mats: Record<string, Material> = {
   grass: { h: 100, s: 18, l: 58 }, grassDry: { h: 60, s: 16, l: 62 }, soil: { h: 30, s: 14, l: 44 },

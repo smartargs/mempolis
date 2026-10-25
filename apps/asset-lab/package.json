@@ -1,5 +1,5 @@
 {
-  "name": "@neoworld/asset-lab",
+  "name": "@mempolis/asset-lab",
   "version": "0.1.0",
   "description": "Review tool: every asset's evolution strip, with day/night, decay, region, rotation and zoom.",
   "license": "Apache-2.0",
@@ -12,8 +12,8 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@neoworld/engine": "workspace:*",
-    "@neoworld/reference-art": "workspace:*"
+    "@mempolis/engine": "workspace:*",
+    "@mempolis/reference-art": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

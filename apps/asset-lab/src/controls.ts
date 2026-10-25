@@ -1,4 +1,4 @@
-import type { Lod, Region } from '@neoworld/engine';
+import type { Lod, Region } from '@mempolis/engine';
 import { timeOfDayLabel, type ViewState } from './view-state.ts';
 
 const byId = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -22,7 +22,7 @@ function applyUrl(s: ViewState) {
   const q = new URLSearchParams(location.search);
   for (const id of ['night', 'decay', 'rot']) if (q.has(id)) slider(id).value = q.get(id)!;
   if (q.get('anim') === '0') slider('anim').checked = false;
-  if (q.get('region') === 'coast') s.region = 'coast';
+  if (q.get('region') === 'neox') s.region = 'neox';
   if (q.has('lod')) s.lod = Number(q.get('lod')) as Lod;
   document.querySelectorAll('[data-region]').forEach(b => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.region === s.region)));
   document.querySelectorAll('[data-lod]').forEach(b => b.setAttribute('aria-pressed', String(Number((b as HTMLElement).dataset.lod) === s.lod)));

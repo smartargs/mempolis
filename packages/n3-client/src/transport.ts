@@ -38,7 +38,7 @@ export class Transport {
       retries: o.retries ?? 4,
       backoffMs: o.backoffMs ?? 800,
       timeoutMs: o.timeoutMs ?? 30000,
-      fetch: o.fetch ?? fetch,
+      fetch: o.fetch ?? ((input, init) => fetch(input, init)),
     };
     this.limiter = new Limiter(this.opts.concurrency, this.opts.spacingMs);
   }

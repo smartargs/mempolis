@@ -1,4 +1,4 @@
-import type { Asset, DecayRole } from '@neoworld/engine';
+import type { Asset, DecayRole } from '@mempolis/engine';
 
 const DECAY_TEXT: Record<DecayRole, string> = {
   activity: 'Shows recent activity',

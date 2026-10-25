@@ -2,6 +2,8 @@
 export const NATIVE = {
   neo: '0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5',
   gas: '0xd2a4cff31913016155e38e474a2c06d08be276cf',
+  contractManagement: '0xfffdc93764dbaddd97c48f252a53ea4643faa3fd',
+  oracle: '0xfe924b7cfe89ddd271abaf7210a80a7e11178758',
 } as const;
 
 /** The Neo Name Service (.neo) NEP-11 contract on mainnet. */
@@ -86,3 +88,17 @@ export interface NeoAccountState { balance: string; balanceHeight: number; voteT
 
 /** NEP-11 tokens held under one contract. */
 export interface Nep11Holding { contract: string; symbol: string; tokens: { tokenId: string; amount: string }[] }
+
+/** A Neo VM stack item as the node serialises it to JSON. */
+export interface StackItemJson { type: string; value?: unknown }
+
+/** One contract notification (event) emitted while a transaction ran. */
+export interface ContractNotification {
+  txid: string;
+  blockIndex: number;
+  timestampMs: number;
+  contract: string;
+  event: string;
+  /** The event's arguments; byte strings are base64. */
+  state: StackItemJson[];
+}

@@ -1,10 +1,10 @@
 {
-  "name": "@neoworld/n3-client",
+  "name": "@mempolis/n3-client",
   "version": "0.1.0",
-  "description": "Small typed client for the N3Index API and neo-go RPC, with retry, a concurrency limit and an on-disk cache.",
+  "description": "Small typed client for the N3Index API and neo-go RPC, with retry, a concurrency limit and a pluggable cache. Runs in Node and the browser.",
   "license": "Apache-2.0",
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": { ".": "./src/index.ts", "./node": "./src/node.ts" },
   "scripts": { "typecheck": "tsc -p tsconfig.json" },
   "devDependencies": { "typescript": "5.9.3", "@types/node": "22.19.1" }
 }

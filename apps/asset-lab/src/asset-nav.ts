@@ -1,4 +1,4 @@
-import type { ArtPack, Asset } from '@neoworld/engine';
+import type { ArtPack, Asset } from '@mempolis/engine';
 
 /** The asset selected in the URL hash, or the first one. */
 export function selectedAsset(pack: ArtPack): Asset {
@@ -6,11 +6,12 @@ export function selectedAsset(pack: ArtPack): Asset {
   return pack.assets.find(a => a.id === id) ?? pack.assets[0];
 }
 
-const GROUP_ORDER = ['Mainland · Neo N3', 'Coast · Neo X', 'Both regions', 'Archive'];
+const GROUP_ORDER = ['Sprawl · Neo N3', 'Array · Neo X', 'Both regions', 'Landmarks', 'Archive'];
 
 function groupOf(a: Asset): string {
+  if (a.group) return a.group;
   if (a.batch === 0) return 'Archive';
-  if (a.regions?.length === 1) return a.regions[0] === 'coast' ? 'Coast · Neo X' : 'Mainland · Neo N3';
+  if (a.regions?.length === 1) return a.regions[0] === 'neox' ? 'Array · Neo X' : 'Sprawl · Neo N3';
   return 'Both regions';
 }
 
@@ -19,7 +20,7 @@ export function renderNav(nav: HTMLElement, pack: ArtPack) {
   const groups = new Map<string, Asset[]>();
   for (const a of pack.assets) groups.set(groupOf(a), [...(groups.get(groupOf(a)) ?? []), a]);
   nav.replaceChildren();
-  for (const name of GROUP_ORDER) {
+  for (const name of [...GROUP_ORDER, ...[...groups.keys()].filter(g => !GROUP_ORDER.includes(g))]) {
     const assets = groups.get(name);
     if (!assets) continue;
     const heading = document.createElement('h3');

@@ -20,6 +20,8 @@ export interface FaceOpts {
   /** Handle of an earlier face in the same group to draw directly on top of. */
   decalOf?: number;
   tag?: string;
+  /** Id of a logo in the style to draw across this quad instead of a fill. */
+  logo?: string;
 }
 
 /**
@@ -36,6 +38,7 @@ export class Builder {
   private current: PaintGroup | null = null;
   private decalCount = 0;
   private fadeWeight = 1;
+  private partId: number | undefined;
 
   constructor(opts: { seed: number; rot?: number; at?: Vec3 }) {
     this.rng = mulberry32(opts.seed);
@@ -70,19 +73,35 @@ export class Builder {
     try { fn(); } finally { this.fadeWeight = previous; }
   }
 
+  /** Mark every face and anchor added inside `fn` with part `id`, so the display list can later be split by part. */
+  part(id: number, fn: () => void) {
+    const previous = this.partId;
+    this.partId = id;
+    try { fn(); } finally { this.partId = previous; }
+  }
+
   /** Add a polygon in local space. Returns a handle for decals, or -1 when culled. */
   face(pts: Vec3[], mat: string, o: FaceOpts = {}): number {
     const world = pts.map(p => this.tf(p));
     const n = this.orientNormal(world, o);
     if (!n) return -1;
     const group = this.current ?? this.standaloneGroup(world);
-    group.faces.push({ pts: world, n, mat, tone: o.tone ?? this.facetTone(), depth: this.faceDepth(world, group, o.decalOf), emit: o.emit, alpha: o.alpha, tag: o.tag, fade: this.fadeWeight === 1 ? undefined : this.fadeWeight });
+    group.faces.push({ pts: world, n, mat, tone: o.tone ?? this.facetTone(), depth: this.faceDepth(world, group, o.decalOf), emit: o.emit, alpha: o.alpha, tag: o.tag, fade: this.fadeWeight === 1 ? undefined : this.fadeWeight, part: this.partId, logo: o.logo });
     return group.faces.length - 1;
+  }
+
+  /**
+   * Show logo `id` flat across a local quad whose corners run top-left, top-right, bottom-right, bottom-left as seen
+   * from the front. Pass `decalOf` with the handle of the surface it sits on to paint it right after that surface;
+   * `emit` makes it a lit sign at night. Returns a handle, or -1 when the quad faces away.
+   */
+  logo(corners: [Vec3, Vec3, Vec3, Vec3], id: string, o: { emit?: number; alpha?: number; decalOf?: number } = {}): number {
+    return this.face(corners, 'logo', { ...o, logo: id, tone: 0 });
   }
 
   /** Attach an animation anchor at a local point. */
   anchor(kind: string, at: Vec3, data?: Anchor['data']) {
-    this.anchors.push({ kind, at: this.tf(at), data });
+    this.anchors.push({ kind, at: this.tf(at), data, part: this.partId });
   }
 
   /** Finish and return faces in paint order plus anchors. */

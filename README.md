@@ -1,14 +1,14 @@
 <div align="center">
 
-# Neo World
+# Mempolis
 
-**A living, hand-coded isometric world that grows from activity on Neo N3 and Neo X.**
+**A living city that grows out of real blockchain activity, drawn entirely in code.**
 
-Every wallet has a home waiting. Its history decides what that home looks like.
+Every wallet has a home waiting. Its on-chain history decides what that home looks like.
 
-<img src="docs/hero-mainland-night.svg" alt="A neon tower house on the Mainland at night, with an antenna tower and a heritage flag" width="49%"> <img src="docs/hero-coast-day.svg" alt="A white futuristic hub on the Coast with a palm, glass balustrade and solar roof" width="49%">
+<img src="docs/hero-sprawl-night.svg" alt="A neon tower house in the Sprawl at night, with an antenna tower and a heritage flag" width="49%"> <img src="docs/hero-array-day.svg" alt="A machine hub in the Array by day, with a fibre-optic tree, server cabinets and a force-field fence" width="49%">
 
-<sub>Left: the Mainland (Neo N3) at night. Right: the Coast (Neo X) by day.</sub>
+<sub>Left: the Sprawl on Neo N3, at night. Right: the Array on Neo X, by day.</sub>
 
 </div>
 
@@ -16,66 +16,86 @@ Every wallet has a home waiting. Its history decides what that home looks like.
 
 ## The idea
 
-Blockchains are full of stories that nobody can see. Neo World turns them into a place.
+Blockchains are full of stories that nobody can see. Mempolis turns them into a place.
 
-Look up any address and you see the home its history would build. Claim it, and it moves into the city. Stay active and the home grows, from a tent to a tower. Hold for years and your landmark rises taller. Vote, build, collect, and the plot shows it. Go quiet and the plot goes dark, then lights up again when you return.
+Look up any address and see the home its history would build. Claim it, and it moves into the city. Stay active and the home grows from a tent into a landmark. Hold for years and your mast rises higher. Vote, build, collect, and the plot shows it. Go quiet and the lights dim, then come back on when you return.
 
-The city only holds homes their owners chose to place, so it grows slowly, street by street. The oldest wallets settle in the old town at its centre, and the first to claim get the best streets of their district.
+The city only holds homes their owners chose to place, so it grows street by street. The oldest wallets settle in the old town at its centre, and the projects people use stand among them as landmarks.
 
 <div align="center">
-<img src="docs/range-mainland.svg" alt="Left: a tent on an empty concrete lot. Right: a neon tower surrounded by vending machines, a stall, holo frames, a cargo dock, a server shed and an antenna tower" width="100%">
-<br><sub>A newcomer's empty lot next to a veteran's plot. Every object on the right was earned on-chain.</sub>
+<img src="docs/range-sprawl.svg" alt="Left: a tent on an empty concrete lot. Right: a neon tower surrounded by vending machines, a stall, holo frames, a cargo dock, a server shed and an antenna tower" width="100%">
+<br><sub>A newcomer's lot next to a veteran's. Every object on the right was earned on chain.</sub>
 </div>
 
-## Two lands, two futures
+## One city per chain
 
-**The Mainland is Neo N3:** a weathered neon city of concrete, cables and signs, alive wherever its residents are. Homes grow from a squatter's tent to a container shack, a walk-up, a tower house and finally a neon tower, while an antenna mast grows beside them into a lattice tower with a blinking light. Wallets from the Antshares days fly a heritage flag.
+Each chain gets its own city with its own look, built on the same engine. The first two:
+
+**The Sprawl, on Neo N3:** a weathered neon city of concrete, cables and signs, alive wherever its residents are. Homes grow from a squatter's tent to a container shack, a walk-up, a tower house and a neon tower, with an antenna mast rising beside them.
 
 <div align="center">
-<img src="docs/growth-mainland.svg" alt="Five Mainland plots at night, from a tent to a neon tower" width="100%">
+<img src="docs/growth-sprawl.svg" alt="Five Sprawl plots at night, from a tent to a neon tower" width="100%">
 </div>
 
-**The Coast is Neo X:** clean, bright and modern. Homes grow from a capsule tent to a pod, a villa, a house and a hub with solar roofs and a turbine, on landscaped lawns behind glass balustrades.
+**The Array, on Neo X:** a robotic district on an offshore platform, built for the AI agents Neo X is made for. Homes grow from a sleep capsule to a pod, a servo house, an agent bay and a machine hub, on steel decks behind force-field fences.
 
 <div align="center">
-<img src="docs/growth-coast.svg" alt="Five Coast plots by day, from a capsule tent to a hub" width="100%">
+<img src="docs/growth-array.svg" alt="Five Array plots by day, from a sleep capsule to a machine hub" width="100%">
 </div>
 
-A bridge joins the two, and the world follows a real 24-hour day: neon and windows switch on as night falls.
+The world follows a real 24-hour day: neon and windows switch on as night falls where you are.
+
+## The people who live there
+
+Every resident gets a character to walk their streets: a street punk in the Sprawl, a robot companion in the Array. Activity unlocks rarer looks, and like everything else they are drawn and animated in code.
 
 <div align="center">
-<img src="docs/hero-mainland-day.svg" alt="The Mainland tower house by day" width="40%"> <img src="docs/hero-coast-night.svg" alt="The Coast hub at night with glowing glass" width="40%">
+<img src="docs/residents-sprawl.svg" alt="Four Sprawl residents: a runner with a pink mohawk, a fixer with a cyber arm, a hooded netrunner and a waving street medic" width="58%"> <img src="docs/residents-array.svg" alt="Three robot companions: a waving white assistant, a hovering courier and a scout with a drone" width="38%">
 </div>
 
 ## What makes it different
 
 | | |
 | --- | --- |
-| **Earned, not bought** | Size, age and status come from real on-chain history. Money can buy decoration, never rank. |
-| **Drawn entirely in code** | No sprites, no asset packs. Every building, mast and sign is generated, so the world can grow without limit in one consistent style. |
-| **Verifiable** | The same input always produces the same plot. Anyone can re-render a plot from its public data and check it. |
+| **Earned, not bought** | Size, age and status come from real on-chain history. Money can buy style, never rank. |
+| **Drawn entirely in code** | No sprites, no asset packs. Every building, mast and character is generated, so the world can grow without limit in one consistent style. |
+| **Verifiable** | The same input always draws the same plot. Anyone can re-render a plot from public data and check it. |
 | **Privacy first** | Balances stay hidden until a wallet's owner claims their plot, and owners can hide them again at any time. |
 | **Honest about time** | Long-held, long-active wallets show it. Quiet plots fade a little; nothing earned is ever taken away. |
 
-## What lives in this repository
+## What is in this repository
 
-This is the open-source core of Neo World: the parts that are useful to anyone building on Neo.
+This is the open core of Mempolis: the parts that are useful to anyone who wants to draw worlds in code or build on Neo.
 
-- **The engine** draws the low-poly world: geometry, lighting, day and night, and rendering.
-- **A reference art pack** with a deliberately plain look, so everything works out of the box.
-- **The asset lab**, the review tool where every object can be watched growing from its first stage to its last, by day and night, as it decays, from any angle and at every zoom level.
+| Package | What it does |
+| --- | --- |
+| [`engine`](packages/engine) | Low-poly isometric geometry, lighting, day and night, animation and SVG rendering |
+| [`reference-art`](packages/reference-art) | A deliberately plain art pack, so everything works out of the box |
+| [`asset-lab`](apps/asset-lab) | The review tool: watch any object grow, decay and animate, by day and night, from every angle |
+| [`n3-client`](packages/n3-client) | A small, browser-safe client for Neo N3 wallet history |
 
-More open pieces will follow: the event collector for Neo N3 and Neo X, wallet signature verification, and the plot data format.
+The city's own art, rules and app stay closed for now. To open the asset lab:
+
+```sh
+pnpm install
+pnpm lab
+```
 
 ## Where it stands
 
-Neo World is in its earliest phase: the visual direction is set and the first objects are built.
+The look of the first two cities is set, and the homes, residents and live preview are built. Next:
 
-1. **Style and assets** (now): the look of both lands, and the objects that make a plot
-2. **Living Mirror**: look up any address, claim your plot, watch the world change every week
-3. **The City**: districts, project landmarks, live events
-4. **Living Economy**: seasons, festivals, showcase lots
+1. **Founders' beta:** the first residents sign an on-chain guestbook and are remembered for it.
+2. **Claim your plot:** claiming mints a deed tied to your wallet.
+3. **Earn your look:** activity unlocks what your resident wears.
+4. **The city:** districts fill up, and projects get landmarks.
+5. **Agents move in:** AI agents become residents you can watch at work.
+6. **Living economy:** seasons, festivals and markets.
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE).
+Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+<div align="center">
+<sub>Made by <a href="https://smartargs.com">SmartArgs</a>.</sub>
+</div>

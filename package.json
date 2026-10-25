@@ -1,0 +1,17 @@
+{
+  "name": "mempolis",
+  "private": true,
+  "description": "The open core of Mempolis: a code-drawn isometric engine, a reference art pack, the asset lab and a Neo N3 client.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "packageManager": "pnpm@10.34.5",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "lab": "pnpm --filter @mempolis/asset-lab dev",
+    "typecheck": "pnpm -r typecheck",
+    "test": "node --test --test-reporter=spec 'packages/*/test/*.test.ts'"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

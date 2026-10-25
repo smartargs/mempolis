@@ -16,6 +16,10 @@ export interface Face {
   tag?: string;
   /** Weight 0..1 of the render's fade for this face; earned objects use 0. */
   fade?: number;
+  /** Id of the part this face was built under (see `Builder.part`). */
+  part?: number;
+  /** Id of a logo in the style, drawn across this quad instead of a fill (see `Builder.logo`). */
+  logo?: string;
 }
 
 /** A point the animation overlay attaches to: chimney tip, lamp, pond surface... */
@@ -23,6 +27,8 @@ export interface Anchor {
   kind: string;
   at: Vec3;
   data?: Record<string, number | string>;
+  /** Id of the part this anchor was built under (see `Builder.part`). */
+  part?: number;
 }
 
 export interface DisplayList {
@@ -30,7 +36,7 @@ export interface DisplayList {
   anchors: Anchor[];
 }
 
-export type Region = 'mainland' | 'coast';
+export type Region = 'n3' | 'neox';
 /** 0 visit, 1 street, 2 neighbourhood, 3 town. */
 export type Lod = 0 | 1 | 2 | 3;
 
@@ -42,6 +48,9 @@ export interface Material {
   lit?: [number, number, number];
 }
 
+/** A flat brand mark: inner SVG markup in a `w` × `h` box, with flat fills only (no ids, gradients, text or links). */
+export interface LogoDef { w: number; h: number; svg: string }
+
 export interface StyleDef {
   id: string;
   /** Shading steps per material (quantised lighting). */
@@ -51,6 +60,8 @@ export interface StyleDef {
   ambient: number;
   materials(region: Region): Record<string, Material>;
   night: { tint: [number, number, number]; lift: [number, number, number] };
+  /** Brand marks that faces can show, by id. */
+  logos?: Record<string, LogoDef>;
 }
 
 export interface AssetCtx {
@@ -92,6 +103,20 @@ export interface AssetVariant<P> {
   options: VariantOption<P>[];
 }
 
+/** A looping animation; each frame is rebuilt with `anim` set to its name and `phase` running from 0 to 1. */
+export interface AssetAnimation {
+  name: string;
+  frames: number;
+  fps: number;
+}
+
+/** Parameters every animated asset accepts. */
+export interface AnimatedParams {
+  anim?: string;
+  /** Position in the loop, 0 inclusive to 1 exclusive. */
+  phase?: number;
+}
+
 export interface AssetStage<P> {
   label: string;
   params: P;
@@ -110,10 +135,13 @@ export interface Asset<P = any> {
   mapping: AssetMapping;
   /** Regions this asset belongs to; omitted means both. */
   regions?: Region[];
+  /** Where the asset lab lists it, such as "Landmarks"; omitted lists it by its regions. */
+  group?: string;
   /** Footprint in metres (local x by local y), centred on the origin. */
   footprint: [number, number];
   stages: AssetStage<P>[];
   variants?: AssetVariant<P>[];
+  animations?: AssetAnimation[];
   build(b: import('./builder.ts').Builder, p: P, ctx: AssetCtx): void;
 }
 

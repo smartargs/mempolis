@@ -1,14 +1,12 @@
-import { diskCache, type JsonCache } from './cache.ts';
+import type { JsonCache } from './cache.ts';
 import { N3Index } from './n3index.ts';
+import { nnsNamesOf } from './nns.ts';
 import { NeoRpc } from './rpc.ts';
 import { Transport, type TransportOptions, type TransportStats } from './transport.ts';
-import { NNS_CONTRACT } from './types.ts';
 
 /** Options for `createN3Client`. */
 export interface N3ClientOptions extends Omit<TransportOptions, 'cache'> {
-  /** Directory for the on-disk JSON cache. */
-  cacheDir?: string;
-  /** A cache to use instead of `cacheDir`; `null` disables caching. */
+  /** Where responses are kept, e.g. `diskCache` from `@mempolis/n3-client/node` or `storageCache(sessionStorage)`; omit or `null` for none. */
   cache?: JsonCache | null;
   network?: string;
   indexUrl?: string;
@@ -27,14 +25,9 @@ export interface N3Client {
   stats(): TransportStats;
 }
 
-function decodeName(tokenId: string): string {
-  const bytes = /^[0-9a-f]+$/i.test(tokenId) && tokenId.length % 2 === 0 ? Buffer.from(tokenId, 'hex') : Buffer.from(tokenId, 'base64');
-  return bytes.toString('utf8');
-}
-
-/** Create a client for one network. Pass `cacheDir` to keep every response on disk. */
+/** Create a client for one network. Runs in Node and the browser; the caller picks the cache. */
 export function createN3Client(o: N3ClientOptions = {}): N3Client {
-  const cache = o.cache !== undefined ? o.cache : o.cacheDir ? diskCache(o.cacheDir) : null;
+  const cache = o.cache ?? null;
   const indexHttp = new Transport({ ...o, cache }), rpcHttp = new Transport({ ...o, cache });
   const index = new N3Index(indexHttp, { baseUrl: o.indexUrl, network: o.network });
   const rpc = new NeoRpc(rpcHttp, o.rpcUrl);
@@ -42,9 +35,7 @@ export function createN3Client(o: N3ClientOptions = {}): N3Client {
     index,
     rpc,
     voteOf: async address => (await rpc.neoAccountState(address))?.voteTo ?? null,
-    nnsNames: async address => (await rpc.nep11Balances(address))
-      .filter(h => h.contract === NNS_CONTRACT)
-      .flatMap(h => h.tokens.map(t => decodeName(t.tokenId))),
+    nnsNames: async address => nnsNamesOf(await rpc.nep11Balances(address)),
     stats: () => {
       const a = indexHttp.stats, b = rpcHttp.stats;
       return { requests: a.requests + b.requests, cacheHits: a.cacheHits + b.cacheHits, retries: a.retries + b.retries, failures: a.failures + b.failures };

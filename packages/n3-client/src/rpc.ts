@@ -1,4 +1,5 @@
 import { addressToScriptHash } from './address.ts';
+import { base64ToBytes, bytesToHex } from './bytes.ts';
 import { HttpError } from './http.ts';
 import type { Transport } from './transport.ts';
 import { NATIVE, type Candidate, type NeoAccountState, type Nep11Holding, type TokenBalance, type Transfer } from './types.ts';
@@ -9,7 +10,7 @@ interface StackItem { type: string; value?: any }
 
 function stackHex(item: StackItem | undefined): string | null {
   if (!item || item.type === 'Any' || item.value == null) return null;
-  return Buffer.from(String(item.value), 'base64').toString('hex');
+  return bytesToHex(base64ToBytes(String(item.value)));
 }
 
 /** JSON-RPC access to a Neo N3 node (neo-go method set). */

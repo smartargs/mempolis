@@ -1,8 +1,11 @@
-export { addressToScriptHash, isAddress } from './address.ts';
-export { diskCache, memoryCache, type CacheHit, type JsonCache } from './cache.ts';
+export { addressToScriptHash, isAddress, scriptHashToAddress } from './address.ts';
+export { base64ToScriptHash, bytesToHex, hexToBytes } from './bytes.ts';
+export { memoryCache, storageCache, type CacheHit, type JsonCache, type KeyValueStorage } from './cache.ts';
 export { createN3Client, type N3Client, type N3ClientOptions } from './client.ts';
 export { HttpError } from './http.ts';
 export { N3Index } from './n3index.ts';
+export { nnsNamesOf } from './nns.ts';
+export { sha256 } from './sha256.ts';
 export { NeoRpc } from './rpc.ts';
 export { Transport, type TransportOptions, type TransportStats } from './transport.ts';
 export * from './types.ts';

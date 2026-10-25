@@ -1,5 +1,5 @@
 {
-  "name": "@neoworld/engine",
+  "name": "@mempolis/engine",
   "version": "0.1.0",
   "description": "Deterministic low-poly isometric engine: shape kit, display lists, shading and rendering.",
   "license": "Apache-2.0",

@@ -1,11 +1,11 @@
 {
-  "name": "@neoworld/reference-art",
+  "name": "@mempolis/reference-art",
   "version": "0.1.0",
   "description": "A deliberately plain art pack so the open-source engine and tools work out of the box.",
   "license": "Apache-2.0",
   "type": "module",
   "exports": { ".": "./src/index.ts" },
   "scripts": { "typecheck": "tsc -p tsconfig.json" },
-  "dependencies": { "@neoworld/engine": "workspace:*" },
+  "dependencies": { "@mempolis/engine": "workspace:*" },
   "devDependencies": { "typescript": "5.9.3" }
 }

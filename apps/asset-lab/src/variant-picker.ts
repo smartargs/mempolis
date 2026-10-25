@@ -1,4 +1,4 @@
-import type { Asset } from '@neoworld/engine';
+import type { Asset } from '@mempolis/engine';
 
 const chosen = new Map<string, number[]>();
 

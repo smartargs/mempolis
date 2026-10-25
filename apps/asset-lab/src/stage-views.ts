@@ -1,4 +1,4 @@
-import { Builder, boundsOf, buildAsset, hashSeed, renderSVG, type ArtPack, type Asset, type AssetCtx, type Bounds, type DisplayList, type Lod } from '@neoworld/engine';
+import { Builder, boundsOf, buildAsset, hashSeed, renderSVG, type ArtPack, type Asset, type AssetCtx, type Bounds, type DisplayList, type Lod } from '@mempolis/engine';
 import { LOD_NAMES, PX_PER_METRE, assetCtx, type ViewState } from './view-state.ts';
 
 function buildStage(a: Asset, stage: number, ctx: AssetCtx, rot: number, extra: Record<string, unknown>): DisplayList {
@@ -7,7 +7,8 @@ function buildStage(a: Asset, stage: number, ctx: AssetCtx, rot: number, extra: 
   return b.build();
 }
 
-function stageBackground(night: number): string {
+/** Card background for the current time of day. */
+export function stageBackground(night: number): string {
   const day = getComputedStyle(document.documentElement).getPropertyValue('--card-day').trim() || '#e6ece2';
   return night > 0.02 ? `color-mix(in oklab, ${day}, #141b2c ${Math.round(night * 100)}%)` : day;
 }

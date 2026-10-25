@@ -1,9 +1,10 @@
 import pack from 'virtual:art-pack';
 import { markSelected, renderNav, selectedAsset } from './asset-nav.ts';
 import { bindControls, lockRegion, setDecayEnabled } from './controls.ts';
+import { renderPlayer } from './anim-player.ts';
 import { renderMapping } from './mapping-panel.ts';
 import { renderVariants, variantParams } from './variant-picker.ts';
-import { renderStrip, renderZoomRow } from './stage-views.ts';
+import { renderStrip, renderZoomRow, stageBackground } from './stage-views.ts';
 import { initialState } from './view-state.ts';
 
 const byId = (id: string) => document.getElementById(id) as HTMLElement;
@@ -21,10 +22,12 @@ function render() {
     byId('strip').textContent = 'No stages yet.';
     byId('zooms').replaceChildren();
     byId('variants').hidden = true;
+    byId('player').hidden = true;
     return;
   }
   renderVariants(byId('variants'), asset, render);
   const extra = variantParams(asset);
+  renderPlayer(byId('player'), pack, asset, state, extra, stageBackground(state.night));
   renderStrip(byId('strip'), pack, asset, state, extra);
   renderZoomRow(byId('zooms'), pack, asset, state, extra);
 }
