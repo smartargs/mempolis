@@ -8,7 +8,7 @@ import { renderStrip, renderZoomRow, stageBackground } from './stage-views.ts';
 import { initialState } from './view-state.ts';
 
 const byId = (id: string) => document.getElementById(id) as HTMLElement;
-const state = initialState();
+const state = initialState(pack.regions[0].id);
 
 function render() {
   const asset = selectedAsset(pack);
@@ -34,6 +34,6 @@ function render() {
 
 byId('pack').textContent = pack.name;
 renderNav(byId('list'), pack);
-bindControls(state, render);
+bindControls(state, pack.regions, render);
 window.addEventListener('hashchange', render);
 render();

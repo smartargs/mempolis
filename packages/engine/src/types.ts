@@ -38,7 +38,15 @@ export interface DisplayList {
   anchors: Anchor[];
 }
 
-export type Region = 'n3' | 'neox';
+/**
+ * The region ids art packs draw, one per city. The engine lists none itself: a pack adds its own by augmenting this
+ * interface, `declare module '@mempolis/engine' { interface RegionIds { n3: true } }`.
+ */
+export interface RegionIds {}
+/** A region id registered in `RegionIds`. */
+export type Region = Extract<keyof RegionIds, string>;
+/** A city an art pack draws: its region id and the name tools list it under. */
+export interface RegionDef { id: Region; name: string }
 /** 0 visit, 1 street, 2 neighbourhood, 3 town. */
 export type Lod = 0 | 1 | 2 | 3;
 
@@ -130,34 +138,5 @@ export interface AssetStage<P> {
   means?: string;
 }
 
-export interface Asset<P = any> {
-  id: string;
-  name: string;
-  batch: number;
-  /** What drives it, from the World Catalog. */
-  driver: string;
-  decayRole: DecayRole;
-  mapping: AssetMapping;
-  /** Regions this asset belongs to; omitted means both. */
-  regions?: Region[];
-  /** Where the asset lab lists it, such as "Landmarks"; omitted lists it by its regions. */
-  group?: string;
-  /** Footprint in metres (local x by local y), centred on the origin. */
-  footprint: [number, number];
-  stages: AssetStage<P>[];
-  variants?: AssetVariant<P>[];
-  animations?: AssetAnimation[];
-  build(b: import('./builder.ts').Builder, p: P, ctx: AssetCtx): void;
-}
-
 /** Which asset draws a catalog element in each region. */
 export type ElementMap = Record<string, Partial<Record<Region, string>>>;
-
-export interface ArtPack {
-  id: string;
-  name: string;
-  style: StyleDef;
-  assets: Asset[];
-  /** Catalog elements (house, holding, activity...) mapped to their asset per region. */
-  elements?: ElementMap;
-}

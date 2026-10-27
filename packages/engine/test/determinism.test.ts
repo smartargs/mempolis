@@ -75,7 +75,7 @@ test('a logo face draws its mark across the projected quad, dimmed at night unle
   const dl = b.build();
   assert.equal(dl.faces[0].logo, 'mark');
   const day = renderSVG(dl, branded, 'n3', { night: 0 }), night = renderSVG(dl, branded, 'n3', { night: 1 });
-  assert.match(day, /<g transform="matrix\([^)]+\)"><rect width="10" height="5" fill="#00e599"\/><\/g>/);
+  assert.match(day, /<g transform="matrix\([^)]+\)"[^>]*><rect width="10" height="5" fill="#00e599"\/><\/g>/);
   assert.match(night, /fill="rgb\(6,8,16\)" opacity="0.50"/);
 });
 

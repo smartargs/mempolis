@@ -21,7 +21,7 @@
       <label>Time of day <input id="night" type="range" min="0" max="100" value="0"><span id="nightV"></span></label>
       <label>Decay <input id="decay" type="range" min="0" max="100" value="0"><span id="decayV"></span></label>
       <label>Rotation <input id="rot" type="range" min="0" max="345" step="15" value="0"><span id="rotV"></span></label>
-      <div class="seg" role="group" aria-label="Region"><button data-region="n3" aria-pressed="true">Sprawl</button><button data-region="neox" aria-pressed="false">Array</button></div>
+      <div class="seg" id="regions" role="group" aria-label="Region"></div>
       <div class="seg" role="group" aria-label="Zoom"><button data-lod="0" aria-pressed="true">Visit</button><button data-lod="1" aria-pressed="false">Street</button><button data-lod="2" aria-pressed="false">Neighbourhood</button><button data-lod="3" aria-pressed="false">Town</button></div>
       <label class="chk"><input id="anim" type="checkbox" checked> Animate</label>
     </section>

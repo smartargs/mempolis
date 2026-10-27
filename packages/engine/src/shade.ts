@@ -16,6 +16,10 @@ const WARM: RGB = [1.04, 1.01, 0.94];
 const temper = (c: RGB, tint: RGB, k: number): RGB => [c[0] * lerp(1, tint[0], k), c[1] * lerp(1, tint[1], k), c[2] * lerp(1, tint[2], k)];
 /** CSS rgb() string. */
 export const rgbCss = (c: RGB) => `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`;
+const HEX = Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, '0'));
+const byte = (v: number) => HEX[Math.max(0, Math.min(255, v | 0))];
+/** CSS `#rrggbb` string of the same colour `rgbCss` writes. */
+export const rgbHex = (c: RGB) => `#${byte(c[0])}${byte(c[1])}${byte(c[2])}`;
 
 /**
  * Quantised low-poly shading. Each material gets a ramp of `steps` colours
@@ -24,6 +28,7 @@ export const rgbCss = (c: RGB) => `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`;
  */
 export class Shader {
   private readonly ramps = new Map<string, RGB[]>();
+  private readonly fills = new Map<string, string[]>();
   private readonly mats: Record<string, Material>;
   private readonly light: [number, number, number];
   private readonly style: StyleDef;
@@ -51,11 +56,9 @@ export class Shader {
   }
   /** Final colour of a face, including fade, night tint and emission. */
   color(f: Face): RGB {
-    const ramp = this.ramp(f.mat), n = ramp.length;
-    const k = clamp((dot(f.n, this.light) + 0.35) / 1.35, 0, 1);
-    const idx = clamp(Math.round(k * (n - 1)) + f.tone, 0, n - 1);
-    let c = ramp[idx];
-    const fade = (this.o.fade ?? 0) * (f.fade ?? 1), night = this.o.night ?? 0;
+    const ramp = this.ramp(f.mat);
+    let c = ramp[this.step(f, ramp.length)];
+    const fade = this.fadeOf(f), night = this.o.night ?? 0;
     if (fade > 0) {
       const g = 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2], a = 0.55 * fade;
       c = [lerp(c[0], g * 1.05 + 6, a), lerp(c[1], g + 4, a), lerp(c[2], g * 0.9, a)];
@@ -68,6 +71,25 @@ export class Shader {
     }
     return c;
   }
+
+  /** `color` as a CSS `#rrggbb` string, cached per material step for faces without fade or emission. */
+  fill(f: Face): string {
+    if (this.fadeOf(f) > 0 || (f.emit && this.mats[f.mat]?.lit)) return rgbHex(this.color(f));
+    const ramp = this.ramp(f.mat), idx = this.step(f, ramp.length);
+    let row = this.fills.get(f.mat);
+    if (!row) { row = []; this.fills.set(f.mat, row); }
+    return (row[idx] ??= rgbHex(this.color(f)));
+  }
+
+  private step(f: Face, n: number): number {
+    const k = clamp((dot(f.n, this.light) + 0.35) / 1.35, 0, 1);
+    return clamp(Math.round(k * (n - 1)) + f.tone, 0, n - 1);
+  }
+
+  private fadeOf(f: Face): number {
+    return (this.o.fade ?? 0) * (f.fade ?? 1);
+  }
+
   /** The lit colour of an emissive material, if it has one. */
   litColor(mat: string): RGB | undefined {
     const lit = this.mats[mat]?.lit;

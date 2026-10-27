@@ -1,7 +1,7 @@
-import { hslToRgb, rgbCss, type RGB, type Shader } from './shade.ts';
-import type { Anchor } from './types.ts';
+import { PUFF_BODY, PUFF_SHADE, WARM, hexagon, smokeColors, smokeShapes, tenth, type GlowMotion } from './scene-paint.ts';
+import { rgbHex, type RGB, type Shader } from './shade.ts';
 
-const WARM: RGB = [255, 214, 120];
+export type { GlowMotion } from './scene-paint.ts';
 
 /** Radial glow gradients for one render, one per distinct light colour. */
 export class GlowPalette {
@@ -39,9 +39,6 @@ export interface EffectCtx {
   shader: Shader;
 }
 
-/** How a light pool moves over time. */
-export type GlowMotion = 'steady' | 'flicker' | 'blink';
-
 function glowAnimation(motion: GlowMotion, strength: number, phase: number, animate: boolean): string {
   if (!animate || motion === 'steady') return '';
   const op = (v: number) => (v * strength).toFixed(2);
@@ -51,51 +48,30 @@ function glowAnimation(motion: GlowMotion, strength: number, phase: number, anim
 
 /** A light pool: an ellipse of `rx` by `ry` metres in `color`, steady, flickering or blinking. */
 export function glowHalo(x: number, y: number, rx: number, ry: number, strength: number, color: RGB, fx: EffectCtx, motion: GlowMotion = 'steady'): string {
-  const op = (v: number) => (v * strength).toFixed(2);
   const anim = glowAnimation(motion, strength, Math.abs(x) % 1, fx.animate);
-  return `<ellipse cx="${(x * fx.px).toFixed(1)}" cy="${(y * fx.px).toFixed(1)}" rx="${(rx * fx.px).toFixed(1)}" ry="${(ry * fx.px).toFixed(1)}" fill="url(#${fx.glows.id(color)})" opacity="${op(1)}">${anim}</ellipse>`;
+  return `<ellipse cx="${tenth(x * fx.px)}" cy="${tenth(y * fx.px)}" rx="${tenth(rx * fx.px)}" ry="${tenth(ry * fx.px)}" fill="url(#${fx.glows.id(color)})" opacity="${strength.toFixed(2)}">${anim}</ellipse>`;
 }
 
-function hexagon(r: number, from: number, count: number, closeAtCentre: boolean): string {
-  const pts = Array.from({ length: count }, (_, k) => {
-    const t = from + (k / 6) * Math.PI * 2;
-    return `${(Math.cos(t) * r).toFixed(1)},${(Math.sin(t) * r * 0.9).toFixed(1)}`;
-  });
-  return pts.join(' ') + (closeAtCentre ? ' 0,0' : '');
-}
+const points = (pts: [number, number][]) => pts.map(([x, y]) => `${x},${y}`).join(' ');
 
 function puffMotion(x: number, y: number, px: number, dur: number, begin: number): string {
-  const p = (dx: number, dy: number) => `${((x + dx) * px).toFixed(1)} ${((y + dy) * px).toFixed(1)}`;
+  const p = (dx: number, dy: number) => `${tenth((x + dx) * px)} ${tenth((y + dy) * px)}`;
   return `<animateTransform attributeName="transform" type="translate" values="${p(0, 0)}; ${p(0.6, -1.6)}; ${p(1.4, -3.2)}" dur="${dur}s" begin="${begin.toFixed(2)}s" repeatCount="indefinite"/>`
     + `<animate attributeName="opacity" values="0.9;0.7;0" dur="${dur}s" begin="${begin.toFixed(2)}s" repeatCount="indefinite"/>`;
 }
 
 /** Faceted chimney smoke rising from a projected point. */
 export function smokePuffs(x: number, y: number, puffs: number, fx: EffectCtx): string {
-  const base: RGB = fx.shader.nightTint(hslToRgb(210, 8, 86), fx.night * 0.8);
-  const shade: RGB = [base[0] * 0.86, base[1] * 0.88, base[2] * 0.92];
+  const [base, shade] = smokeColors(fx.shader, fx.night);
   const dur = 5.2;
   let out = '';
-  for (let i = 0; i < puffs; i++) {
-    const r = (0.16 + 0.05 * i) * fx.px;
-    const body = `<polygon points="${hexagon(r, 0.3, 6, false)}" fill="${rgbCss(base)}"/><polygon points="${hexagon(r, 0.3 + Math.PI, 4, true)}" fill="${rgbCss(shade)}"/>`;
+  smokeShapes(x, y, puffs, fx.px).forEach((puff, i) => {
+    const body = `<polygon points="${points(hexagon(puff.r, PUFF_BODY.from, PUFF_BODY.count, false))}" fill="${rgbHex(base)}"/><polygon points="${points(hexagon(puff.r, PUFF_SHADE.from, PUFF_SHADE.count, true))}" fill="${rgbHex(shade)}"/>`;
     out += fx.animate
       ? `<g>${body}${puffMotion(x, y, fx.px, dur, -(i * dur) / puffs)}</g>`
-      : `<g transform="translate(${((x + 0.5 * i) * fx.px).toFixed(1)} ${((y - 1.1 * i) * fx.px).toFixed(1)})" opacity="${(0.85 - i * 0.18).toFixed(2)}">${body}</g>`;
-  }
+      : `<g transform="translate(${tenth(puff.x)} ${tenth(puff.y)})" opacity="${puff.opacity.toFixed(2)}">${body}</g>`;
+  });
   return out;
-}
-
-/** Render one anchor's effect; returns [effect markup, glow markup]. A glow anchor may name its material in `data.mat` and set `data.blink` to blink instead of flicker. */
-export function anchorEffect(a: Anchor, x: number, y: number, fx: EffectCtx): [string, string] {
-  if (a.kind === 'smoke') return [smokePuffs(x, y, Number(a.data?.puffs ?? 3), fx), ''];
-  if (a.kind === 'glow' && fx.night > 0.05) {
-    const r = Number(a.data?.r ?? 1);
-    const color = (typeof a.data?.mat === 'string' ? fx.shader.litColor(a.data.mat) : undefined) ?? WARM;
-    const motion: GlowMotion = a.data?.blink ? 'blink' : 'flicker';
-    return ['', glowHalo(x, y, r, r * 0.78, 0.9 * fx.night, color, fx, motion)];
-  }
-  return ['', ''];
 }
 
 /** The light colour used when a material defines none. */

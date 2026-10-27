@@ -9,7 +9,9 @@
   "scripts": {
     "lab": "pnpm --filter @mempolis/asset-lab dev",
     "typecheck": "pnpm -r typecheck",
-    "test": "node --test --test-reporter=spec 'packages/*/test/*.test.ts'"
+    "test": "node --test --test-reporter=spec 'packages/*/test/*.test.ts'",
+    "typecheck:test": "tsc -p tsconfig.test.json",
+    "verify": "pnpm typecheck && pnpm typecheck:test && pnpm test"
   },
   "devDependencies": {
     "typescript": "5.9.3"

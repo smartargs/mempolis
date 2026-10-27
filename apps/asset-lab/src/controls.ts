@@ -1,4 +1,4 @@
-import type { Lod, Region } from '@mempolis/engine';
+import type { Lod, Region, RegionDef } from '@mempolis/engine';
 import { timeOfDayLabel, type ViewState } from './view-state.ts';
 
 const byId = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -18,11 +18,12 @@ function readSliders(s: ViewState) {
   byId('rotV').textContent = `${slider('rot').value}°`;
 }
 
-function applyUrl(s: ViewState) {
+function applyUrl(s: ViewState, regions: RegionDef[]) {
   const q = new URLSearchParams(location.search);
   for (const id of ['night', 'decay', 'rot']) if (q.has(id)) slider(id).value = q.get(id)!;
   if (q.get('anim') === '0') slider('anim').checked = false;
-  if (q.get('region') === 'neox') s.region = 'neox';
+  const region = regions.find(r => r.id === q.get('region'));
+  if (region) s.region = region.id;
   if (q.has('lod')) s.lod = Number(q.get('lod')) as Lod;
   document.querySelectorAll('[data-region]').forEach(b => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.region === s.region)));
   document.querySelectorAll('[data-lod]').forEach(b => b.setAttribute('aria-pressed', String(Number((b as HTMLElement).dataset.lod) === s.lod)));
@@ -44,9 +45,18 @@ export function setDecayEnabled(enabled: boolean) {
   slider('decay').closest('label')?.classList.toggle('off', !enabled);
 }
 
-/** Wire the control strip to `state`; `onChange` runs after every change. */
-export function bindControls(state: ViewState, onChange: () => void) {
-  applyUrl(state);
+function regionButtons(regions: RegionDef[]) {
+  byId('regions').replaceChildren(...regions.map(r => {
+    const btn = document.createElement('button');
+    btn.dataset.region = r.id; btn.textContent = r.name;
+    return btn;
+  }));
+}
+
+/** Wire the control strip to `state`, offering the pack's `regions`; `onChange` runs after every change. */
+export function bindControls(state: ViewState, regions: RegionDef[], onChange: () => void) {
+  regionButtons(regions);
+  applyUrl(state, regions);
   readSliders(state);
   for (const id of ['night', 'decay', 'rot', 'anim']) slider(id).addEventListener('input', () => { readSliders(state); onChange(); });
   document.querySelectorAll<HTMLButtonElement>('[data-region]').forEach(btn => btn.addEventListener('click', () => {

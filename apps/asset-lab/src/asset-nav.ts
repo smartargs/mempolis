@@ -6,21 +6,21 @@ export function selectedAsset(pack: ArtPack): Asset {
   return pack.assets.find(a => a.id === id) ?? pack.assets[0];
 }
 
-const GROUP_ORDER = ['Sprawl · Neo N3', 'Array · Neo X', 'Both regions', 'Landmarks', 'Archive'];
+const ALL_REGIONS = 'All regions';
 
-function groupOf(a: Asset): string {
+function groupOf(pack: ArtPack, a: Asset): string {
   if (a.group) return a.group;
   if (a.batch === 0) return 'Archive';
-  if (a.regions?.length === 1) return a.regions[0] === 'neox' ? 'Array · Neo X' : 'Sprawl · Neo N3';
-  return 'Both regions';
+  if (a.regions?.length === 1) return pack.regions.find(r => r.id === a.regions![0])?.name ?? a.regions[0];
+  return ALL_REGIONS;
 }
 
 /** Render the sidebar list grouped by region, with archived assets last. */
 export function renderNav(nav: HTMLElement, pack: ArtPack) {
-  const groups = new Map<string, Asset[]>();
-  for (const a of pack.assets) groups.set(groupOf(a), [...(groups.get(groupOf(a)) ?? []), a]);
+  const groups = new Map<string, Asset[]>(), order = [...pack.regions.map(r => r.name), ALL_REGIONS, 'Landmarks', 'Archive'];
+  for (const a of pack.assets) groups.set(groupOf(pack, a), [...(groups.get(groupOf(pack, a)) ?? []), a]);
   nav.replaceChildren();
-  for (const name of [...GROUP_ORDER, ...[...groups.keys()].filter(g => !GROUP_ORDER.includes(g))]) {
+  for (const name of [...order, ...[...groups.keys()].filter(g => !order.includes(g))]) {
     const assets = groups.get(name);
     if (!assets) continue;
     const heading = document.createElement('h3');

@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": { "types": ["node"], "typeRoots": ["./packages/n3-client/node_modules/@types"] },
+  "include": ["packages/*/test/**/*.ts"]
+}

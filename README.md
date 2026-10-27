@@ -70,7 +70,7 @@ This is the open core of Mempolis: the parts that are useful to anyone who wants
 
 | Package | What it does |
 | --- | --- |
-| [`engine`](packages/engine) | Low-poly isometric geometry, lighting, day and night, animation and SVG rendering |
+| [`engine`](packages/engine) | Low-poly isometric geometry, lighting, day and night, animation, and rendering to SVG or straight onto a canvas, also off the main thread |
 | [`reference-art`](packages/reference-art) | A deliberately plain art pack, so everything works out of the box |
 | [`asset-lab`](apps/asset-lab) | The review tool: watch any object grow, decay and animate, by day and night, from every angle |
 | [`n3-client`](packages/n3-client) | A small, browser-safe client for Neo N3 wallet history |

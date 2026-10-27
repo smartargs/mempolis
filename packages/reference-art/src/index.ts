@@ -1,4 +1,11 @@
-import { blob, box, facetedPlane, gableRoof, prism, wallRect, type ArtPack, type Asset, type Material, type StyleDef } from '@mempolis/engine';
+import { blob, box, facetedPlane, gableRoof, prism, wallRect, type ArtPack, type Asset, type Material, type RegionDef, type StyleDef } from '@mempolis/engine';
+
+declare module '@mempolis/engine' {
+  interface RegionIds { n3: true; neox: true }
+}
+
+/** The cities the reference art draws: both look alike. */
+export const referenceRegions: RegionDef[] = [{ id: 'n3', name: 'Neo N3' }, { id: 'neox', name: 'Neo X' }];
 
 const mats: Record<string, Material> = {
   grass: { h: 100, s: 18, l: 58 }, grassDry: { h: 60, s: 16, l: 62 }, soil: { h: 30, s: 14, l: 44 },
@@ -37,5 +44,5 @@ const tree: Asset<{ age: number }> = {
   },
 };
 
-export const pack: ArtPack = { id: 'reference', name: 'Reference art (open source)', style: referenceStyle, assets: [house, tree] };
+export const pack: ArtPack = { id: 'reference', name: 'Reference art (open source)', style: referenceStyle, regions: referenceRegions, assets: [house, tree] };
 export default pack;

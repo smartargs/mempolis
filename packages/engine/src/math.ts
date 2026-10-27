@@ -8,6 +8,10 @@ export const neg = (a: Vec3): Vec3 => [-a[0], -a[1], -a[2]];
 export const dot = (a: Vec3, b: Vec3): number => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 export const cross = (a: Vec3, b: Vec3): Vec3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 export const norm = (a: Vec3): Vec3 => { const m = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / m, a[1] / m, a[2] / m]; };
+/** Scale `a` to unit length in place and return it; same result as `norm` without allocating. */
+export const normalize = (a: Vec3): Vec3 => { const m = Math.hypot(a[0], a[1], a[2]) || 1; a[0] /= m; a[1] /= m; a[2] /= m; return a; };
+/** Negate `a` in place and return it. */
+export const negate = (a: Vec3): Vec3 => { a[0] = -a[0]; a[1] = -a[1]; a[2] = -a[2]; return a; };
 export const avg = (ps: Vec3[]): Vec3 => { const s: Vec3 = [0, 0, 0]; for (const p of ps) { s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; } return mul(s, 1 / ps.length); };
 
 export const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -23,7 +27,7 @@ export function faceNormal(p: Vec3[]): Vec3 {
     n[1] += (a[2] - b[2]) * (a[0] + b[0]);
     n[2] += (a[0] - b[0]) * (a[1] + b[1]);
   }
-  return norm(n);
+  return normalize(n);
 }
 
 export type Rng = () => number;

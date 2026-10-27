@@ -26,14 +26,14 @@ export class Limiter {
 
   private async acquire() {
     if (this.active >= this.concurrency) await new Promise<void>(resolve => this.queue.push(resolve));
-    this.active++;
+    else this.active++;
     const now = Date.now(), start = Math.max(now, this.nextStart);
     this.nextStart = start + this.spacingMs;
     if (start > now) await wait(start - now);
   }
 
   private release() {
-    this.active--;
-    this.queue.shift()?.();
+    const next = this.queue.shift();
+    if (next) next(); else this.active--;
   }
 }

@@ -1,5 +1,6 @@
 import type { Builder } from './builder.ts';
-import type { Asset, AssetCtx, DecayRole } from './types.ts';
+import type { Asset } from './asset.ts';
+import type { AssetCtx, DecayRole } from './types.ts';
 
 /** The decay an asset with `role` receives when its plot is at `decay`. */
 export function decayFor(role: DecayRole, decay: number): number {

@@ -71,6 +71,9 @@ export interface ActivityEvent {
 /** A whole activity feed; `complete` is false when it was cut at `maxPages`. */
 export interface ActivityFeed { events: ActivityEvent[]; complete: boolean }
 
+/** A transaction an account sent or signed. */
+export interface AccountTransaction { txid: string; blockIndex: number; timestampMs: number; sender: string }
+
 /** A holder of a token, by balance. */
 export interface Holder { address: string; balanceRaw: string }
 

@@ -1,11 +1,18 @@
-import { avg, cross, dot, faceNormal, mulberry32, neg, norm, sub, type Rng, type Vec3 } from './math.ts';
+import { cross, dot, faceNormal, mulberry32, negate, norm, normalize, sub, type Rng, type Vec3 } from './math.ts';
 import { paintLayout, type Layer, type PaintGroup } from './paint-order.ts';
-import { VIEW, depthOf } from './projection.ts';
+import { VIEW, centroidDepth, depthOf } from './projection.ts';
 import { TransformStack } from './transform.ts';
-import type { Anchor, DisplayList } from './types.ts';
+import type { Anchor, DisplayList, Face } from './types.ts';
 
-/** How far apart the groups inside one stack may sort, relative to their own depths; small enough that stacks never interleave. */
 const STACK_SPREAD = 1e-4;
+const DECAL_STEP = 1e-6;
+
+const towardCentroid = (n: Vec3, ps: Vec3[], from: Vec3): number => {
+  let x = 0, y = 0, z = 0;
+  for (const p of ps) { x += p[0]; y += p[1]; z += p[2]; }
+  const k = 1 / ps.length;
+  return n[0] * (x * k - from[0]) + n[1] * (y * k - from[1]) + n[2] * (z * k - from[2]);
+};
 
 /** Options for a single face. */
 export interface FaceOpts {
@@ -39,7 +46,8 @@ export class Builder {
   private readonly xf: TransformStack;
   private readonly groups: PaintGroup[] = [];
   private current: PaintGroup | null = null;
-  private decalCount = 0;
+  private readonly decalRoot = new Map<Face, Face>();
+  private readonly decalCount = new Map<Face, number>();
   private fadeWeight = 1;
   private partId: number | undefined;
   private band: number | undefined;
@@ -101,7 +109,11 @@ export class Builder {
     const n = this.orientNormal(world, o);
     if (!n) return -1;
     const group = this.current ?? this.standaloneGroup(world);
-    group.faces.push({ pts: world, n, mat, tone: o.tone ?? this.facetTone(), depth: this.faceDepth(world, group, o.decalOf), emit: o.emit, alpha: o.alpha, tag: o.tag, fade: this.fadeWeight === 1 ? undefined : this.fadeWeight, part: this.partId, logo: o.logo });
+    const parent = o.decalOf !== undefined && o.decalOf >= 0 ? group.faces[o.decalOf] : undefined;
+    const root = parent && (this.decalRoot.get(parent) ?? parent);
+    const face: Face = { pts: world, n, mat, tone: o.tone ?? this.facetTone(), depth: root ? this.decalDepth(root) : centroidDepth(world), emit: o.emit, alpha: o.alpha, tag: o.tag, fade: this.fadeWeight === 1 ? undefined : this.fadeWeight, part: this.partId, logo: o.logo };
+    group.faces.push(face);
+    if (root) this.decalRoot.set(face, root);
     return group.faces.length - 1;
   }
 
@@ -129,17 +141,18 @@ export class Builder {
   }
 
   private orientNormal(world: Vec3[], o: FaceOpts): Vec3 | null {
-    let n = o.n ? norm(this.td(o.n)) : faceNormal(world);
-    if (o.inside) { if (dot(n, sub(avg(world), this.tf(o.inside))) < 0) n = neg(n); }
-    else if (!o.n && dot(n, VIEW) < 0) n = neg(n);
+    const n = o.n ? normalize(this.td(o.n)) : faceNormal(world);
+    if (o.inside) { if (towardCentroid(n, world, this.tf(o.inside)) < 0) negate(n); }
+    else if (!o.n && dot(n, VIEW) < 0) negate(n);
     const facing = dot(n, VIEW);
-    if (o.double) return facing < 0 ? neg(n) : n;
+    if (o.double) return facing < 0 ? negate(n) : n;
     return facing > 0.002 ? n : null;
   }
 
-  private faceDepth(world: Vec3[], group: PaintGroup, decalOf?: number): number {
-    const parent = decalOf !== undefined && decalOf >= 0 ? group.faces[decalOf] : undefined;
-    return parent ? parent.depth + 1e-4 * ((++this.decalCount % 500) + 1) : depthOf(avg(world));
+  private decalDepth(root: Face): number {
+    const k = (this.decalCount.get(root) ?? 0) + 1;
+    this.decalCount.set(root, k);
+    return root.depth + DECAL_STEP * k;
   }
 
   private facetTone(): number {
@@ -158,7 +171,7 @@ export class Builder {
   }
 
   private standaloneGroup(world: Vec3[]): PaintGroup {
-    const group: PaintGroup = { layer: 'object', depth: this.groupDepth(depthOf(avg(world))), ordered: false, faces: [] };
+    const group: PaintGroup = { layer: 'object', depth: this.groupDepth(centroidDepth(world)), ordered: false, faces: [] };
     this.groups.push(group);
     return group;
   }
