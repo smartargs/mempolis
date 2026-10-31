@@ -74,6 +74,7 @@ This is the open core of Mempolis: the parts that are useful to anyone who wants
 | [`reference-art`](packages/reference-art) | A deliberately plain art pack, so everything works out of the box |
 | [`asset-lab`](apps/asset-lab) | The review tool: watch any object grow, decay and animate, by day and night, from every angle |
 | [`n3-client`](packages/n3-client) | A small, browser-safe client for Neo N3 wallet history |
+| [`contracts`](contracts/neo) | The on-chain contracts: the founders' guestbook and city credits |
 
 The city's own art, rules and app stay closed for now. To open the asset lab:
 

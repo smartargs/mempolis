@@ -20,6 +20,8 @@ export interface Face {
   part?: number;
   /** Id of a logo in the style, drawn across this quad instead of a fill (see `Builder.logo`). */
   logo?: string;
+  /** False when a lit face casts no night halo of its own: lit text that must stay crisp, or a piece of a split face whose halo another piece casts. */
+  halo?: false;
 }
 
 /** A point the animation overlay attaches to: chimney tip, lamp, pond surface... */

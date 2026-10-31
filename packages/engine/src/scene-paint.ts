@@ -90,7 +90,7 @@ export function paintScene(dl: DisplayList, sc: SceneCtx, sink: SceneSink) {
     if (glows) for (const h of glows) sink.glow(h);
     if (!f.logo) sink.face(f, sc.shader.fill(f));
     else { const def = logos?.[f.logo]; if (def && f.pts.length >= 4) sink.logo(f, def); }
-    if (!f.emit || !lit) continue;
+    if (!f.emit || !lit || f.halo === false) continue;
     const logoGlow = f.logo ? logos?.[f.logo]?.glow : undefined;
     if (!f.logo || logoGlow) sink.glow(faceHalo(f, sc, logoGlow));
   }

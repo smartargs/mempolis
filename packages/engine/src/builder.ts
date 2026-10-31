@@ -1,6 +1,7 @@
 import { cross, dot, faceNormal, mulberry32, negate, norm, normalize, sub, type Rng, type Vec3 } from './math.ts';
 import { paintLayout, type Layer, type PaintGroup } from './paint-order.ts';
 import { VIEW, centroidDepth, depthOf } from './projection.ts';
+import { splitGroup } from './split.ts';
 import { TransformStack } from './transform.ts';
 import type { Anchor, DisplayList, Face } from './types.ts';
 
@@ -24,6 +25,8 @@ export interface FaceOpts {
   double?: boolean;
   /** Light output 0..1 for emissive materials. */
   emit?: number;
+  /** False keeps a lit face crisp at night: it shows its lit colour but casts no halo, as small lit text needs. */
+  halo?: false;
   alpha?: number;
   /** Fixed shading-step offset instead of the seeded facet jitter. */
   tone?: number;
@@ -40,8 +43,7 @@ export interface FaceOpts {
  * so assets can face any direction while the light stays fixed.
  */
 export class Builder {
-  /** Seeded random source; the only randomness generation code may use. */
-  readonly rng: Rng;
+  private random: Rng;
   readonly anchors: Anchor[] = [];
   private readonly xf: TransformStack;
   private readonly groups: PaintGroup[] = [];
@@ -53,8 +55,21 @@ export class Builder {
   private band: number | undefined;
 
   constructor(opts: { seed: number; rot?: number; at?: Vec3 }) {
-    this.rng = mulberry32(opts.seed);
+    this.random = mulberry32(opts.seed);
     this.xf = new TransformStack(opts.rot ?? 0, opts.at ?? [0, 0, 0]);
+  }
+
+  /** Seeded random source; the only randomness generation code may use. */
+  get rng(): Rng { return this.random; }
+
+  /**
+   * Run `fn` with a fresh random source seeded by `seed` and restore the previous one after, so what `fn` builds is
+   * the same wherever and after whatever it is built. Returns what `fn` returns.
+   */
+  seeded<T>(seed: number, fn: () => T): T {
+    const previous = this.random;
+    this.random = mulberry32(seed);
+    try { return fn(); } finally { this.random = previous; }
   }
 
   /** Enter a local frame rotated by `rot` radians and moved to `at`. */
@@ -69,13 +84,20 @@ export class Builder {
   /** Local direction to world direction. */
   td(v: Vec3): Vec3 { return this.xf.direction(v); }
 
-  /** Group the faces added inside `fn`; `pivot` (local) places the group in paint order. */
-  object(pivot: Vec3, fn: () => void, opts: { layer?: Layer; ordered?: boolean } = {}) {
-    const previous = this.current;
-    const group: PaintGroup = { layer: opts.layer ?? 'object', depth: this.groupDepth(depthOf(this.tf(pivot))), ordered: !!opts.ordered, faces: [] };
-    this.groups.push(group);
+  /**
+   * Group the faces added inside `fn`; `pivot` (local) places the group in paint order. With `split`, a group wider
+   * than that many metres along world x or y is cut along a world grid of that pitch, and each piece sorts at the
+   * middle of its grid cell at the pivot's height, so a long kerb, rail or roof never paints its far end over something
+   * nearer. Small decals and strips laid on an earlier face stay whole and paint after the pieces under them; ground
+   * groups are never cut.
+   */
+  object(pivot: Vec3, fn: () => void, opts: { layer?: Layer; ordered?: boolean; split?: number } = {}) {
+    const previous = this.current, at = this.tf(pivot);
+    const group: PaintGroup = { layer: opts.layer ?? 'object', depth: this.groupDepth(depthOf(at)), ordered: !!opts.ordered, faces: [] };
+    const index = this.groups.push(group) - 1;
     this.current = group;
     try { fn(); } finally { this.current = previous; }
+    if (opts.split && group.layer !== 'ground') this.splitInPlace(index, at, opts.split);
   }
 
   /**
@@ -111,7 +133,7 @@ export class Builder {
     const group = this.current ?? this.standaloneGroup(world);
     const parent = o.decalOf !== undefined && o.decalOf >= 0 ? group.faces[o.decalOf] : undefined;
     const root = parent && (this.decalRoot.get(parent) ?? parent);
-    const face: Face = { pts: world, n, mat, tone: o.tone ?? this.facetTone(), depth: root ? this.decalDepth(root) : centroidDepth(world), emit: o.emit, alpha: o.alpha, tag: o.tag, fade: this.fadeWeight === 1 ? undefined : this.fadeWeight, part: this.partId, logo: o.logo };
+    const face: Face = { pts: world, n, mat, tone: o.tone ?? this.facetTone(), depth: root ? this.decalDepth(root) : centroidDepth(world), emit: o.emit, ...(o.halo === false ? { halo: false as const } : {}), alpha: o.alpha, tag: o.tag, fade: this.fadeWeight === 1 ? undefined : this.fadeWeight, part: this.partId, logo: o.logo };
     group.faces.push(face);
     if (root) this.decalRoot.set(face, root);
     return group.faces.length - 1;
@@ -162,6 +184,13 @@ export class Builder {
 
   private groupDepth(raw: number): number {
     return this.band === undefined ? raw : this.band + raw * STACK_SPREAD;
+  }
+
+  private splitInPlace(index: number, at: Vec3, span: number) {
+    const roles = { decal: (f: Face) => this.decalRoot.has(f), root: (f: Face) => this.decalCount.has(f) };
+    const parts = splitGroup(this.groups[index], at, span, roles, p => this.groupDepth(depthOf(p)));
+    this.groups[index] = parts[0];
+    for (let i = 1; i < parts.length; i++) this.groups.push(parts[i]);
   }
 
   private anchorGroup(at: Vec3): PaintGroup {
