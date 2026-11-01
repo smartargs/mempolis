@@ -3,6 +3,7 @@ package com.smartargs.mempolis.guestbook;
 import com.smartargs.mempolis.testkit.ReadyNeoExpressContainer;
 import com.smartargs.mempolis.testkit.TestHelper;
 import io.neow3j.contract.SmartContract;
+import io.neow3j.crypto.ECKeyPair;
 import io.neow3j.protocol.Neow3j;
 import io.neow3j.protocol.core.response.NeoApplicationLog;
 import io.neow3j.protocol.core.response.Notification;
@@ -22,7 +23,9 @@ import static com.smartargs.mempolis.testkit.TestHelper.assertAborted;
 import static com.smartargs.mempolis.testkit.TestHelper.assertHalted;
 import static com.smartargs.mempolis.testkit.TestHelper.fundedAccount;
 import static com.smartargs.mempolis.testkit.TestHelper.read;
+import static com.smartargs.mempolis.testkit.TestHelper.ownerAndGate;
 import static com.smartargs.mempolis.testkit.TestHelper.send;
+import static com.smartargs.mempolis.testkit.TestHelper.voucher;
 import static io.neow3j.types.ContractParameter.hash160;
 import static io.neow3j.types.ContractParameter.integer;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,6 +37,7 @@ public class ClosedFoundersGuestbookTest {
     private static final ContractTestExtension ext = new ContractTestExtension(new ReadyNeoExpressContainer());
 
     private static final Account owner = Account.create();
+    private static final ECKeyPair gate = Account.create().getECKeyPair();
 
     private static Neow3j neow3j;
     private static SmartContract guestbook;
@@ -43,7 +47,7 @@ public class ClosedFoundersGuestbookTest {
     @DeployConfig(FoundersGuestbook.class)
     public static DeployConfiguration configure(DeployContext ctx) {
         DeployConfiguration config = new DeployConfiguration();
-        config.setDeployParam(hash160(owner.getScriptHash()));
+        config.setDeployParam(ownerAndGate(owner.getScriptHash(), gate));
         return config;
     }
 
@@ -54,7 +58,7 @@ public class ClosedFoundersGuestbookTest {
         guestbook = ext.getDeployedContract(FoundersGuestbook.class);
         TestHelper.fund(neow3j, ext, owner.getScriptHash());
         founder = fundedAccount(neow3j, ext);
-        assertHalted(send(guestbook, "sign", founder, hash160(founder)), neow3j);
+        assertHalted(send(guestbook, "sign", founder, hash160(founder), voucher(guestbook.getScriptHash(), founder.getScriptHash(), gate)), neow3j);
         closing = assertHalted(send(guestbook, "close", owner), neow3j);
     }
 
@@ -75,7 +79,7 @@ public class ClosedFoundersGuestbookTest {
     void sign_afterClosing_aborts() throws Throwable {
         Account latecomer = fundedAccount(neow3j, ext);
 
-        assertAborted(send(guestbook, "sign", latecomer, hash160(latecomer)), "GB: closed", neow3j);
+        assertAborted(send(guestbook, "sign", latecomer, hash160(latecomer), voucher(guestbook.getScriptHash(), latecomer.getScriptHash(), gate)), "GB: closed", neow3j);
 
         assertThat(read(guestbook, "getCount").getInteger()).isEqualTo(BigInteger.ONE);
     }

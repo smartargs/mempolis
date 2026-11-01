@@ -5,7 +5,7 @@ neow3j contracts, one Gradle module per contract, with shared test code in `test
 ## Design
 
 - **Owner updates, nothing else.** Each contract has an owner-only `update(nef, manifest, data)`. No `destroy`, no pause. `_deploy` returns early when `update` is true, so an update can never reset the owner.
-- **One privileged role at most**, set at deploy. Give it the smallest possible power and say in the class Javadoc what it can do. Never add a method that touches a holder's balance or number.
+- **One privileged role at most**, set at deploy. Give it the smallest possible power and say in the class Javadoc what it can do. Never add a method that touches a holder's balance or number. The guestbook's gate key is the one approved exception: it signs vouchers on an always-online server, which a multi-sig owner cannot, and it can only approve wallets.
 - **Least authority.** List only the `@Permission` entries that are used, naming the native contract and the method, as narrowly as it works.
 - **No funds unless that is the contract's job.** Without an `@OnNEP17Payment` method, transfers fault instead of stranding. When a contract does take payments, check the calling token's hash, and handle the `from == null` case.
 - **The contract's value must not hang on grindable randomness.** `Runtime.getRandom()` can be ground by a transaction script.
@@ -50,6 +50,11 @@ neow3j contracts, one Gradle module per contract, with shared test code in `test
 
 ## Before mainnet
 
-Pin the commit, check that two clean builds give the same NEF hash, deploy to testnet first, use a multi-sig owner, because it can replace the code, and get a review of anything holding value.
+Pin the commit, check that two clean builds give the same NEF hash, deploy to testnet first, use an owner wallet apart from the deploying key, because it can replace the code, make that a multi-sig before it controls anything of value, and get a review of anything holding value. `./deploy.sh mainnet` enforces all of this except the multi-sig and the review.
+
+## Deploying
+
+- The public nodes run neo-go, the test node runs C# neo-express. A deploy can pass every test and still fail on a real network, so also run `./deploy.sh testnet all --dry-run` after changing the deploy tool.
+- Do not use `TransactionBuilder.sign()` or `getUnsignedTransaction()` in the deploy tool. They price a transaction with a witness for a placeholder key, and neo-go rejects it with `witness hash mismatch`. `SignedTransactions` prices it with the real key.
 
 Sources: neow3j docs at <https://neow3j.io>, and the checklist at <https://github.com/smartargs/neo-sc-audits/blob/main/BEST_PRACTICES.md>.

@@ -1,6 +1,7 @@
 package com.smartargs.mempolis.guestbook;
 
 import io.neow3j.devpack.ByteString;
+import io.neow3j.devpack.ECPoint;
 import io.neow3j.devpack.Hash160;
 import io.neow3j.devpack.Helper;
 import io.neow3j.devpack.Runtime;
@@ -14,15 +15,20 @@ import io.neow3j.devpack.annotations.ManifestExtra;
 import io.neow3j.devpack.annotations.OnDeployment;
 import io.neow3j.devpack.annotations.Permission;
 import io.neow3j.devpack.annotations.Safe;
+import io.neow3j.devpack.constants.NamedCurveHash;
 import io.neow3j.devpack.constants.NativeContract;
 import io.neow3j.devpack.contracts.ContractManagement;
+import io.neow3j.devpack.contracts.CryptoLib;
+import io.neow3j.devpack.contracts.StdLib;
 import io.neow3j.devpack.events.Event1Arg;
 import io.neow3j.devpack.events.Event2Args;
 
 /**
- * The founders' guestbook of one Mempolis city. A wallet signs once and gets the next founder number. The owner, set at
- * deploy, can close the book for good at the city's launch and can update the contract's code. The contract takes no
- * fee, holds no funds, calls nothing but the update itself and cannot be destroyed.
+ * The founders' guestbook of one Mempolis city. A wallet signs once and gets the next founder number. Signing needs a
+ * voucher: a signature by the gate key over this contract and the wallet, which the project hands to wallets that pass
+ * its anti-bot check, so a script cannot sign from fresh wallets. The gate key can only approve wallets; it cannot touch
+ * a number, the code or the book's state. The owner, set at deploy, can replace the gate key, close the book for good at
+ * the city's launch and update the contract's code. The contract takes no fee, holds no funds and cannot be destroyed.
  */
 @DisplayName("MempolisFoundersGuestbook")
 @ContractSourceCode("https://github.com/smartargs/mempolis")
@@ -30,6 +36,8 @@ import io.neow3j.devpack.events.Event2Args;
 @ManifestExtra(key = "Source", value = "https://github.com/smartargs/mempolis")
 @ManifestExtra(key = "License", value = "Apache-2.0")
 @Permission(nativeContract = NativeContract.ContractManagement, methods = "update")
+@Permission(nativeContract = NativeContract.CryptoLib, methods = "verifyWithECDsa")
+@Permission(nativeContract = NativeContract.StdLib, methods = "base64Decode")
 public class FoundersGuestbook {
 
     private static final int KEY_OWNER = 1;
@@ -37,6 +45,9 @@ public class FoundersGuestbook {
     private static final int KEY_CLOSED = 3;
     private static final int PREFIX_NUMBER_OF = 4;
     private static final int PREFIX_FOUNDER_AT = 5;
+    private static final int KEY_GATE = 6;
+
+    private static final int VOUCHER_CHARS = 88;
 
     @DisplayName("Signed")
     @EventParameterNames({"wallet", "number"})
@@ -46,29 +57,43 @@ public class FoundersGuestbook {
     @EventParameterNames({"founders"})
     private static Event1Arg<Integer> onClosed;
 
+    @DisplayName("GateChanged")
+    @EventParameterNames({"gate"})
+    private static Event1Arg<ECPoint> onGateChanged;
+
     /**
-     * Stores the owner on first deployment. An update leaves it unchanged.
+     * Stores the owner and the gate key on first deployment. An update leaves them unchanged.
      *
-     * @param data the owner's script hash; a signing account, ideally a multi-sig
+     * @param data an array of the owner's script hash, a signing account, ideally a multi-sig, and the gate's public key
      * @param update whether this call comes from an update
      */
     @OnDeployment
     public static void deploy(Object data, boolean update) {
         if (update) return;
-        if (data == null || !Hash160.isValid(data) || ((Hash160) data).isZero()) Helper.abort("GB: bad owner");
-        Storage.put(Storage.getStorageContext(), KEY_OWNER, (Hash160) data);
+        if (data == null) Helper.abort("GB: bad owner");
+        Object[] args = (Object[]) data;
+        if (args.length != 2) Helper.abort("GB: bad owner");
+        if (args[0] == null || !Hash160.isValid(args[0]) || ((Hash160) args[0]).isZero()) Helper.abort("GB: bad owner");
+        if (args[1] == null || !ECPoint.isValid(args[1])) Helper.abort("GB: bad gate");
+
+        StorageContext ctx = Storage.getStorageContext();
+        Storage.put(ctx, KEY_OWNER, (Hash160) args[0]);
+        Storage.put(ctx, KEY_GATE, (ByteString) args[1]);
     }
 
     /**
      * Signs the book for {@code wallet}, which must witness the transaction.
      *
+     * @param wallet the wallet signing
+     * @param voucher the gate's signature over this contract's hash and {@code wallet}, as 64 bytes of r and s in base64
      * @return the wallet's founder number, counted from 1
      */
-    public static int sign(Hash160 wallet) {
+    public static int sign(Hash160 wallet, String voucher) {
         requireFirstCall();
         requireValidWallet(wallet);
         if (!Runtime.checkWitness(wallet)) Helper.abort("GB: no witness");
         if (!isOpen()) Helper.abort("GB: closed");
+        requireVoucher(wallet, voucher);
 
         StorageContext ctx = Storage.getStorageContext();
         StorageMap numbers = new StorageMap(ctx, PREFIX_NUMBER_OF);
@@ -95,6 +120,21 @@ public class FoundersGuestbook {
     }
 
     /**
+     * Replaces the gate key, so vouchers from the old one stop working. Owner only.
+     *
+     * @param gate the new gate's public key
+     */
+    public static void setGate(ECPoint gate) {
+        requireFirstCall();
+        requireOwner();
+        if (gate == null || !ECPoint.isValid(gate)) Helper.abort("GB: bad gate");
+
+        Storage.put(Storage.getStorageContext(), KEY_GATE, gate.toByteString());
+
+        onGateChanged.fire(gate);
+    }
+
+    /**
      * Replaces the contract's code and manifest and keeps its storage. Owner only.
      *
      * @param nef the new NEF file
@@ -113,7 +153,13 @@ public class FoundersGuestbook {
         return Storage.getIntOrZero(Storage.getReadOnlyContext(), KEY_CLOSED) == 0;
     }
 
-    /** The account that can close the book and update the contract. */
+    /** The public key whose signature lets a wallet sign. */
+    @Safe
+    public static ECPoint getGate() {
+        return new ECPoint(Storage.get(Storage.getReadOnlyContext(), KEY_GATE));
+    }
+
+    /** The account that can replace the gate, close the book and update the contract. */
     @Safe
     public static Hash160 getOwner() {
         return Storage.getHash160(Storage.getReadOnlyContext(), KEY_OWNER);
@@ -144,6 +190,15 @@ public class FoundersGuestbook {
 
     private static void requireOwner() {
         if (!Runtime.checkWitness(getOwner())) Helper.abort("GB: not owner");
+    }
+
+    private static void requireVoucher(Hash160 wallet, String voucher) {
+        if (voucher == null || voucher.length() != VOUCHER_CHARS) Helper.abort("GB: bad voucher");
+        ByteString message = Runtime.getExecutingScriptHash().toByteString().concat(wallet.toByteString());
+        ByteString signature = new StdLib().base64Decode(voucher);
+        if (!new CryptoLib().verifyWithECDsa(message, getGate(), signature, NamedCurveHash.secp256r1SHA256)) {
+            Helper.abort("GB: bad voucher");
+        }
     }
 
     private static void requireValidWallet(Hash160 wallet) {

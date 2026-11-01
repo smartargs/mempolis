@@ -1,0 +1,11 @@
+{
+  "MempolisFoundersGuestbook" : {
+    "hash" : "0x7086fb78a87793fe0d8bef73229882694146a105",
+    "transaction" : "0x8361136ecffc08b7c5d65beb5b2f97260ee663cae96b10fe513ad057c1f436c2",
+    "owner" : "NLgK6TKE46XaW6WQ2PauDcMa8wyEXTgxh8",
+    "deployer" : "NQdQDiZcbKJ6txEj2EBw9aeABfjoTZefL5",
+    "nefChecksum" : 662483389,
+    "fingerprint" : "eae73560c4e8eda3a97f98198ca8aa2e8cf599af496a73e1f952e708f9aa7d52",
+    "commit" : "3a4cc5c05bc50bd6bd476434a164dd562d4ca523"
+  }
+}

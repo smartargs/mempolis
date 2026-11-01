@@ -5,6 +5,7 @@ import com.smartargs.mempolis.testkit.ReadyNeoExpressContainer;
 import com.smartargs.mempolis.testkit.TestHelper;
 import io.neow3j.contract.GasToken;
 import io.neow3j.contract.SmartContract;
+import io.neow3j.crypto.ECKeyPair;
 import io.neow3j.protocol.Neow3j;
 import io.neow3j.protocol.core.response.ContractManifest;
 import io.neow3j.protocol.core.response.NeoApplicationLog;
@@ -35,7 +36,9 @@ import static com.smartargs.mempolis.testkit.TestHelper.assertReadAborts;
 import static com.smartargs.mempolis.testkit.TestHelper.deploy;
 import static com.smartargs.mempolis.testkit.TestHelper.fundedAccount;
 import static com.smartargs.mempolis.testkit.TestHelper.read;
+import static com.smartargs.mempolis.testkit.TestHelper.ownerAndGate;
 import static com.smartargs.mempolis.testkit.TestHelper.send;
+import static com.smartargs.mempolis.testkit.TestHelper.voucher;
 import static com.smartargs.mempolis.testkit.TestHelper.sendDeploy;
 import static com.smartargs.mempolis.testkit.TestHelper.sendTwice;
 import static com.smartargs.mempolis.testkit.TestHelper.sendUpdate;
@@ -53,6 +56,7 @@ public class FoundersGuestbookTest {
     private static final ContractTestExtension ext = new ContractTestExtension(new ReadyNeoExpressContainer());
 
     private static final Account owner = Account.create();
+    private static final ECKeyPair gate = Account.create().getECKeyPair();
 
     private static Neow3j neow3j;
     private static SmartContract guestbook;
@@ -61,7 +65,7 @@ public class FoundersGuestbookTest {
     @DeployConfig(FoundersGuestbook.class)
     public static DeployConfiguration configure(DeployContext ctx) {
         DeployConfiguration config = new DeployConfiguration();
-        config.setDeployParam(hash160(owner.getScriptHash()));
+        config.setDeployParam(ownerAndGate(owner.getScriptHash(), gate));
         return config;
     }
 
@@ -105,7 +109,7 @@ public class FoundersGuestbookTest {
         Account wallet = fundedAccount(neow3j, ext);
         BigInteger before = read(guestbook, "getCount").getInteger();
 
-        Hash256 tx = send(guestbook, "sign", wallet, hash160(wallet));
+        Hash256 tx = send(guestbook, "sign", wallet, hash160(wallet), voucher(guestbook.getScriptHash(), wallet.getScriptHash(), gate));
         NeoApplicationLog.Execution execution = assertHalted(tx, neow3j);
 
         BigInteger number = execution.getStack().get(0).getInteger();
@@ -120,7 +124,7 @@ public class FoundersGuestbookTest {
     void sign_firesSignedWithTheWalletAndNumber() throws Throwable {
         Account wallet = fundedAccount(neow3j, ext);
 
-        NeoApplicationLog.Execution execution = assertHalted(send(guestbook, "sign", wallet, hash160(wallet)), neow3j);
+        NeoApplicationLog.Execution execution = assertHalted(send(guestbook, "sign", wallet, hash160(wallet), voucher(guestbook.getScriptHash(), wallet.getScriptHash(), gate)), neow3j);
 
         Notification signed = execution.getNotifications().get(0);
         assertThat(signed.getEventName()).isEqualTo("Signed");
@@ -135,9 +139,9 @@ public class FoundersGuestbookTest {
         Account first = fundedAccount(neow3j, ext);
         Account second = fundedAccount(neow3j, ext);
 
-        BigInteger a = assertHalted(send(guestbook, "sign", first, hash160(first)), neow3j)
+        BigInteger a = assertHalted(send(guestbook, "sign", first, hash160(first), voucher(guestbook.getScriptHash(), first.getScriptHash(), gate)), neow3j)
                 .getStack().get(0).getInteger();
-        BigInteger b = assertHalted(send(guestbook, "sign", second, hash160(second)), neow3j)
+        BigInteger b = assertHalted(send(guestbook, "sign", second, hash160(second), voucher(guestbook.getScriptHash(), second.getScriptHash(), gate)), neow3j)
                 .getStack().get(0).getInteger();
 
         assertThat(b).isGreaterThan(a);
@@ -147,10 +151,10 @@ public class FoundersGuestbookTest {
     @Test
     void sign_aSecondTime_abortsAndKeepsTheFirstNumber() throws Throwable {
         Account wallet = fundedAccount(neow3j, ext);
-        BigInteger number = assertHalted(send(guestbook, "sign", wallet, hash160(wallet)), neow3j)
+        BigInteger number = assertHalted(send(guestbook, "sign", wallet, hash160(wallet), voucher(guestbook.getScriptHash(), wallet.getScriptHash(), gate)), neow3j)
                 .getStack().get(0).getInteger();
 
-        assertAborted(send(guestbook, "sign", wallet, hash160(wallet)), "GB: already signed", neow3j);
+        assertAborted(send(guestbook, "sign", wallet, hash160(wallet), voucher(guestbook.getScriptHash(), wallet.getScriptHash(), gate)), "GB: already signed", neow3j);
 
         assertThat(read(guestbook, "numberOf", hash160(wallet)).getInteger()).isEqualTo(number);
     }
@@ -159,7 +163,7 @@ public class FoundersGuestbookTest {
     void sign_forAnotherWallet_aborts() throws Throwable {
         Account victim = Account.create();
 
-        assertAborted(send(guestbook, "sign", stranger, hash160(victim)), "GB: no witness", neow3j);
+        assertAborted(send(guestbook, "sign", stranger, hash160(victim), voucher(guestbook.getScriptHash(), victim.getScriptHash(), gate)), "GB: no witness", neow3j);
 
         assertThat(read(guestbook, "numberOf", hash160(victim)).getInteger()).isZero();
     }
@@ -168,17 +172,17 @@ public class FoundersGuestbookTest {
     void sign_withAPublicKeyInsteadOfAHash_aborts() throws Throwable {
         ContractParameter publicKey = byteArray(stranger.getECKeyPair().getPublicKey().getEncoded(true));
 
-        assertAborted(send(guestbook, "sign", stranger, publicKey), "GB: bad wallet", neow3j);
+        assertAborted(send(guestbook, "sign", stranger, publicKey, any(null)), "GB: bad wallet", neow3j);
     }
 
     @Test
     void sign_withTheZeroHash_aborts() throws Throwable {
-        assertAborted(send(guestbook, "sign", stranger, hash160(Hash160.ZERO)), "GB: bad wallet", neow3j);
+        assertAborted(send(guestbook, "sign", stranger, hash160(Hash160.ZERO), any(null)), "GB: bad wallet", neow3j);
     }
 
     @Test
     void sign_withoutAWallet_aborts() throws Throwable {
-        assertAborted(send(guestbook, "sign", stranger, any(null)), "GB: bad wallet", neow3j);
+        assertAborted(send(guestbook, "sign", stranger, any(null), any(null)), "GB: bad wallet", neow3j);
     }
 
     @Test
@@ -186,7 +190,8 @@ public class FoundersGuestbookTest {
         Account first = fundedAccount(neow3j, ext);
         Account second = fundedAccount(neow3j, ext);
 
-        Hash256 tx = sendTwice(neow3j, guestbook, "sign", List.of(hash160(first)), List.of(hash160(second)),
+        Hash256 tx = sendTwice(neow3j, guestbook, "sign", List.of(hash160(first), voucher(guestbook.getScriptHash(), first.getScriptHash(), gate)),
+                List.of(hash160(second), voucher(guestbook.getScriptHash(), second.getScriptHash(), gate)),
                 AccountSigner.calledByEntry(first), AccountSigner.calledByEntry(second));
 
         assertAborted(tx, "GB: re-entry", neow3j);
@@ -239,11 +244,11 @@ public class FoundersGuestbookTest {
     void manifest_canOnlyCallUpdateAndOffersNoDestroy() throws Throwable {
         ContractManifest manifest = guestbook.getManifest();
 
-        assertThat(manifest.getPermissions()).hasSize(1);
-        assertThat(manifest.getPermissions().get(0).getMethods()).containsExactly("update");
+        assertThat(manifest.getPermissions().stream().flatMap(p -> p.getMethods().stream()).collect(Collectors.toList()))
+                .containsExactlyInAnyOrder("update", "verifyWithECDsa", "base64Decode");
         assertThat(manifest.getAbi().getMethods().stream()
                 .map(ContractManifest.ContractABI.ContractMethod::getName).collect(Collectors.toSet()))
-                .containsExactlyInAnyOrder("_deploy", "sign", "close", "update", "isOpen", "getOwner", "getCount",
+                .containsExactlyInAnyOrder("_deploy", "sign", "setGate", "close", "update", "isOpen", "getGate", "getOwner", "getCount",
                         "numberOf", "founderAt");
     }
 
@@ -263,9 +268,9 @@ public class FoundersGuestbookTest {
     @Test
     void update_byTheOwner_swapsTheCodeAndKeepsTheStorage() throws Throwable {
         Account instanceOwner = fundedAccount(neow3j, ext);
-        SmartContract instance = deploy(FoundersGuestbook.class, fundedAccount(neow3j, ext), hash160(instanceOwner),
+        SmartContract instance = deploy(FoundersGuestbook.class, fundedAccount(neow3j, ext), ownerAndGate(instanceOwner.getScriptHash(), gate),
                 neow3j);
-        assertHalted(send(instance, "sign", instanceOwner, hash160(instanceOwner)), neow3j);
+        assertHalted(send(instance, "sign", instanceOwner, hash160(instanceOwner), voucher(instance.getScriptHash(), instanceOwner.getScriptHash(), gate)), neow3j);
 
         assertHalted(sendUpdate(instance, UpdatedGuestbook.class, instanceOwner), neow3j);
 
@@ -276,7 +281,7 @@ public class FoundersGuestbookTest {
     @Test
     void update_neverChangesTheOwnerWhateverDataItCarries() throws Throwable {
         Account instanceOwner = fundedAccount(neow3j, ext);
-        SmartContract instance = deploy(FoundersGuestbook.class, fundedAccount(neow3j, ext), hash160(instanceOwner),
+        SmartContract instance = deploy(FoundersGuestbook.class, fundedAccount(neow3j, ext), ownerAndGate(instanceOwner.getScriptHash(), gate),
                 neow3j);
 
         assertHalted(sendUpdate(instance, FoundersGuestbook.class, instanceOwner, hash160(stranger)), neow3j);

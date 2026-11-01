@@ -5,6 +5,8 @@ import io.neow3j.compiler.Compiler;
 import io.neow3j.contract.ContractManagement;
 import io.neow3j.contract.GasToken;
 import io.neow3j.contract.SmartContract;
+import io.neow3j.crypto.ECKeyPair;
+import io.neow3j.crypto.Sign;
 import io.neow3j.protocol.Neow3j;
 import io.neow3j.protocol.ObjectMapperFactory;
 import io.neow3j.protocol.core.response.InvocationResult;
@@ -21,15 +23,20 @@ import io.neow3j.types.ContractParameter;
 import io.neow3j.types.Hash160;
 import io.neow3j.types.Hash256;
 import io.neow3j.types.NeoVMStateType;
+import io.neow3j.utils.ArrayUtils;
 import io.neow3j.utils.Await;
 import io.neow3j.wallet.Account;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Base64;
 import java.util.List;
 
 import static io.neow3j.types.ContractParameter.any;
+import static io.neow3j.types.ContractParameter.array;
 import static io.neow3j.types.ContractParameter.byteArray;
+import static io.neow3j.types.ContractParameter.hash160;
+import static io.neow3j.types.ContractParameter.publicKey;
 import static io.neow3j.types.ContractParameter.string;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -149,6 +156,17 @@ public final class TestHelper {
     public static StackItem read(SmartContract contract, String method, ContractParameter... params)
             throws IOException {
         return contract.callInvokeFunction(method, List.of(params)).getInvocationResult().getStack().get(0);
+    }
+
+    /** The deploy data of a guestbook owned by {@code owner} whose vouchers come from {@code gate}. */
+    public static ContractParameter ownerAndGate(Hash160 owner, ECKeyPair gate) {
+        return array(hash160(owner), publicKey(gate.getPublicKey().getEncoded(true)));
+    }
+
+    /** The voucher {@code gate} gives {@code wallet} for {@code contract}: a signature over both, as base64 of r and s. */
+    public static ContractParameter voucher(Hash160 contract, Hash160 wallet, ECKeyPair gate) {
+        byte[] message = ArrayUtils.concatenate(contract.toLittleEndianArray(), wallet.toLittleEndianArray());
+        return string(Base64.getEncoder().encodeToString(Sign.signMessage(message, gate).getConcatenated()));
     }
 
     private static NeoApplicationLog.Execution executionOf(Hash256 tx, Neow3j neow3j) throws IOException {
