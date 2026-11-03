@@ -12,15 +12,19 @@ import java.util.Optional;
  * @param network the network to deploy to
  * @param modules the Gradle modules whose contracts to deploy
  * @param owner the owner to set, if one was named
- * @param gate the guestbook's gate public key, if one was named
+ * @param gate the gate public key of the guestbook or the deed contract, if one was named
+ * @param treasury where the deed contract forwards payments, if one was named
+ * @param guestbook the guestbook the deed contract reads founders from, if one was named
+ * @param styles how many house styles the deed contract starts with
  * @param rpc the node to talk to
  * @param dryRun whether to stop before sending anything
  * @param commit the source commit being deployed
  */
 public record Options(Network network, List<String> modules, Optional<Hash160> owner, Optional<ECPublicKey> gate,
-        String rpc, boolean dryRun, String commit) {
+        Optional<Hash160> treasury, Optional<Hash160> guestbook, int styles, String rpc, boolean dryRun, String commit) {
 
-    private static final List<String> ALL_MODULES = List.of("guestbook", "credits");
+    private static final List<String> ALL_MODULES = List.of("guestbook", "credits", "deed");
+    private static final int DEFAULT_STYLES = 4;
 
     /** Reads the command line: network, then contract, then flags. */
     public static Options parse(String[] args) {
@@ -31,6 +35,9 @@ public record Options(Network network, List<String> modules, Optional<Hash160> o
         List<String> modules = modules(args[1]);
         Optional<Hash160> owner = Optional.empty();
         Optional<ECPublicKey> gate = Optional.empty();
+        Optional<Hash160> treasury = Optional.empty();
+        Optional<Hash160> guestbook = Optional.empty();
+        int styles = DEFAULT_STYLES;
         String rpc = network.defaultRpc();
         boolean dryRun = false;
         String commit = "unknown";
@@ -39,13 +46,16 @@ public record Options(Network network, List<String> modules, Optional<Hash160> o
             switch (args[i]) {
                 case "--owner" -> owner = Optional.of(Hash160.fromAddress(value(args, ++i)));
                 case "--gate" -> gate = Optional.of(new ECPublicKey(value(args, ++i)));
+                case "--treasury" -> treasury = Optional.of(Hash160.fromAddress(value(args, ++i)));
+                case "--guestbook" -> guestbook = Optional.of(new Hash160(value(args, ++i)));
+                case "--styles" -> styles = Integer.parseInt(value(args, ++i));
                 case "--rpc" -> rpc = value(args, ++i);
                 case "--commit" -> commit = value(args, ++i);
                 case "--dry-run" -> dryRun = true;
                 default -> throw new IllegalArgumentException("Unknown option: " + args[i]);
             }
         }
-        return new Options(network, modules, owner, gate, rpc, dryRun, commit);
+        return new Options(network, modules, owner, gate, treasury, guestbook, styles, rpc, dryRun, commit);
     }
 
     private static List<String> modules(String target) {

@@ -4,6 +4,7 @@ import io.neow3j.contract.GasToken;
 import io.neow3j.crypto.ECKeyPair.ECPublicKey;
 import io.neow3j.protocol.Neow3j;
 import io.neow3j.protocol.http.HttpService;
+import io.neow3j.types.ContractParameter;
 import io.neow3j.types.Hash160;
 import io.neow3j.types.Hash256;
 import io.neow3j.wallet.Account;
@@ -19,11 +20,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static io.neow3j.types.ContractParameter.array;
+import static io.neow3j.types.ContractParameter.hash160;
+import static io.neow3j.types.ContractParameter.integer;
+import static io.neow3j.types.ContractParameter.publicKey;
+
 /** The deploy command. Run it through {@code deploy.sh}, which builds the contracts first. */
 public final class DeployCli {
 
     private static final String WIF_VARIABLE = "NEO_DEPLOYER_WIF";
-    private static final String GATED_MODULE = "guestbook";
+    private static final List<String> GATED_MODULES = List.of("guestbook", "deed");
+    private static final String DEED_MODULE = "deed";
+    private static final String GUESTBOOK_MODULE = "guestbook";
+    private static final String GUESTBOOK_CONTRACT = "MempolisFoundersGuestbook";
     private static final Path RECORDS = Path.of("deployments");
     private static final int GAS_DECIMALS = 8;
 
@@ -43,14 +52,12 @@ public final class DeployCli {
         Neow3j neow3j = connect(options);
         Account sender = deployerAccount();
         Hash160 owner = options.owner().orElse(sender.getScriptHash());
-        if (options.modules().contains(GATED_MODULE) && options.gate().isEmpty()) {
-            throw new IllegalArgumentException("The guestbook needs --gate: the public key of its vouchers.");
+        if (options.modules().stream().anyMatch(GATED_MODULES::contains) && options.gate().isEmpty()) {
+            throw new IllegalArgumentException("The guestbook and the deed contract need --gate: the public key of their vouchers.");
         }
-        Map<ContractArtifact, Optional<ECPublicKey>> gates = new LinkedHashMap<>();
-        for (String module : options.modules()) {
-            gates.put(ContractArtifact.loadFrom(Path.of(module)), module.equals(GATED_MODULE) ? options.gate() : Optional.empty());
-        }
-        List<ContractArtifact> artifacts = new ArrayList<>(gates.keySet());
+        Map<String, ContractArtifact> byModule = new LinkedHashMap<>();
+        for (String module : options.modules()) byModule.put(module, ContractArtifact.loadFrom(Path.of(module)));
+        List<ContractArtifact> artifacts = new ArrayList<>(byModule.values());
 
         boolean mainnet = options.network() == Network.MAINNET;
         if (mainnet) {
@@ -59,8 +66,15 @@ public final class DeployCli {
 
         Deployer deployer = new Deployer(neow3j, sender);
         List<DeploymentPlan> plans = new ArrayList<>();
-        for (ContractArtifact artifact : artifacts) {
-            plans.add(deployer.plan(artifact, owner, gates.get(artifact)));
+        Optional<Hash160> guestbookThisRun = Optional.empty();
+        for (Map.Entry<String, ContractArtifact> entry : byModule.entrySet()) {
+            String module = entry.getKey();
+            Optional<ECPublicKey> gate = GATED_MODULES.contains(module) ? options.gate() : Optional.empty();
+            DeploymentPlan plan = module.equals(DEED_MODULE)
+                    ? deployer.plan(entry.getValue(), owner, gate, deedData(options, owner, guestbookThisRun))
+                    : deployer.plan(entry.getValue(), owner, gate);
+            if (module.equals(GUESTBOOK_MODULE)) guestbookThisRun = Optional.of(plan.hash());
+            plans.add(plan);
         }
 
         BigInteger fee = plans.stream().map(plan -> BigInteger.valueOf(plan.fee())).reduce(BigInteger.ZERO, BigInteger::add);
@@ -76,6 +90,18 @@ public final class DeployCli {
         for (DeploymentPlan plan : plans) {
             record.record(plan.artifact().name(), deliver(deployer, plan, sender, options.commit()));
         }
+    }
+
+    private static ContractParameter deedData(Options options, Hash160 owner, Optional<Hash160> guestbookThisRun)
+            throws IOException {
+        Hash160 treasury = options.treasury()
+                .orElseThrow(() -> new IllegalArgumentException("The deed contract needs --treasury: where payments go."));
+        Optional<Hash160> recorded = recordOf(options.network()).find(GUESTBOOK_CONTRACT).map(deployment -> new Hash160(deployment.hash()));
+        Hash160 guestbook = options.guestbook().or(() -> guestbookThisRun).or(() -> recorded)
+                .orElseThrow(() -> new IllegalArgumentException("The deed contract needs --guestbook or a recorded guestbook."));
+        ECPublicKey gate = options.gate().orElseThrow();
+        return array(hash160(owner), publicKey(gate.getEncoded(true)), hash160(guestbook), hash160(treasury),
+                integer(options.styles()));
     }
 
     private static Neow3j connect(Options options) throws IOException {

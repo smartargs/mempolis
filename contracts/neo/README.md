@@ -6,6 +6,7 @@ The Mempolis contracts for Neo N3, written in Java with [neow3j](https://neow3j.
 | --- | --- |
 | [`guestbook`](guestbook) | The founders' guestbook: a wallet signs once and gets its founder number |
 | [`credits`](credits) | City credits: a soft currency earned by staying active, which cannot be transferred |
+| [`deed`](deed) | Deeds: one soulbound NEP-11 token per wallet for its home on a lot of the city's plan |
 | [`testkit`](testkit) | Test helpers and the test node's config, shared by the contract modules |
 | [`deploy`](deploy) | The deploy tool behind `deploy.sh` |
 
@@ -31,7 +32,7 @@ Classes in a `testsupport` package are test code. They sit in `src/main` because
 ./deploy.sh mainnet guestbook --gate <key> --owner <owner address>
 ```
 
-Name `credits`, or `all` for both, to deploy the other contract too, and use `--rpc <url>` to pick another node. `--gate` is the public key whose vouchers the guestbook accepts. The script finds JDK 21 by itself or uses `JAVA_HOME`, and always builds first.
+Name `credits` or `deed`, or `all` for every contract, and use `--rpc <url>` to pick another node. `--gate` is the public key whose vouchers the guestbook and the deed contract accept. The deed contract also needs `--treasury <address>`, where payments go, and reads founders from the guestbook recorded for that network unless `--guestbook <hash>` names another; `--styles <n>` sets how many house styles it starts with (4 by default). The script finds JDK 21 by itself or uses `JAVA_HOME`, and always builds first.
 
 The key comes from `NEO_DEPLOYER_WIF`, which `deploy.sh` reads from a git-ignored `.env` next to it, or from a hidden prompt. It only signs and pays for the deployment. The contract's owner is whatever `--owner` names, and that account does not have to sign. A deployment costs about 10 GAS per contract.
 
@@ -47,6 +48,8 @@ A contract that is already on chain is checked and skipped, so a run that was in
 - This exact build is recorded in `deployments/testnet.json`.
 - `--owner` is named and is not the deploying key.
 - You type `mainnet` to confirm.
+
+`./deploy.sh setup <testnet|mainnet> --plan <file>` loads a city's lot registry and free queue onto its deed contract, signed by the owner key in `NEO_OWNER_WIF` (or a hidden prompt). The plan file is JSON with `lots`, one registry byte per lot from lot 1, and `queue`, lot numbers in the order free claims get them. It sends only what the chain lacks yet, in batches of 200, so an interrupted run can be repeated; it refuses a plan that disagrees with what is registered, and checks every lot and queue place at the end. `--dry-run` shows what is missing. A multi-sig owner has to sign these calls another way.
 
 `./deploy.sh wallet <name>` creates a new wallet, writing its key to `~/mempolis-keys/<name>.wif`, readable only by you, and printing its address.
 
@@ -107,3 +110,31 @@ There is no transfer and no token standard, so wallets do not list credits. Ther
 ## Verify a deployment
 
 The addresses are in `deployments/<network>.json`. Check out the tag the deployer names, compile with the same `neow3jVersion` from `gradle.properties` and JDK 21, then compare the NEF and manifest with what `getcontractstate` returns for the contract. If either differs, the deployed contract is not this source. Check again after any update.
+
+## Deeds
+
+Claiming a plot mints one Deed per wallet. It cannot be transferred: `transfer` always aborts. The token id is the claim number. The city's lots are registered append-only, one byte each: the tier (1 standard, 2 choice, 3 prime, 4 VIP) plus 8 times the ring from the centre. A registered lot never changes.
+
+| Method | Who | What |
+| --- | --- | --- |
+| `claim(wallet, voucher)` | The wallet | Free claim: the next lot of the queue in the free house style; needs a voucher unless the wallet is a founder |
+| GAS transfer with `[1]` | The wallet | Newcomer claim: the same, for the newcomer fee |
+| GAS transfer with `[2, lot, style]` | The wallet | Chosen claim: a free choice or prime lot inside the open rings, in any house style, for its tier's price |
+| GAS transfer with `[3, style]` | The holder | Changes the house style, for the restyle price |
+| `setLook(wallet, look)`, `setStatus(wallet, status)` | The holder | The resident's look (1 to 16 bytes) and speech-bubble line (up to 112 bytes) |
+| `registerLots(first, infos)`, `queueLots(first, lots)` | Owner | Appends lots to the registry and standard lots to the free queue |
+| `setPrice(kind, amount)` | Owner | Newcomer fee (1), choice (2), prime (3) or restyle (4) price in GAS fractions; 0 stops that sale |
+| `openRingUpTo(ring)`, `setPhase(phase)`, `setStyleCount(n)` | Owner | Opens rings outward, moves from closed (0) to founders (1) to open (2), adds house styles; none of them goes back |
+| `setGate(gate)`, `setTreasury(treasury)`, `update(nef, manifest, data)` | Owner | Replaces the voucher key, the treasury, or the code |
+| `numberOf`, `deedAt`, `deeds(from, count)`, `tierOf`, `ringOf`, `claimOn`, `nextFreeLot`, `queueAt`, `priceOf`, ... | Anyone | State of the city, plus the NEP-11 reads |
+
+- **Phases.** The founders phase needs the guestbook closed, and in it only wallets with a founder number can claim. Founders claim free without a voucher.
+- **No randomness at claim time.** The free queue is a published order of the standard lots, ring by ring from the centre, so a claim cannot be ground for a better lot. A free claim whose lot lies in the next ring opens that ring.
+- **Payments.** Every payment must come from GAS and match its price exactly, and it is forwarded to the treasury in the same transaction, so the contract never holds funds. VIP lots are reserved and cannot be bought.
+- **Vouchers** are signed like the guestbook's, over the deed contract's own hash and the wallet, followed by the network's magic number as a NeoVM integer, so neither a guestbook voucher nor one for another network can claim.
+- **Payment data** values are turned into plain integers before use, so a lot sent as raw bytes cannot slip past the taken-lot check.
+- **The free queue** skips a lot that is already taken when its place comes up, so a lot queued twice is handed out once.
+
+Events: NEP-11 `Transfer` on mint, `Claimed(wallet, number, lot, style)`, `StyleChanged`, `LookChanged`, `StatusChanged`, `LotsRegistered`, `LotsQueued`, `PriceChanged`, `RingOpened`, `PhaseChanged`, `StylesChanged`, `TreasuryChanged` and `GateChanged`.
+
+Lots and queue places are stored in chunks of 200 bytes, so registering the Sprawl's 1,083 lots and 737 queue places costs about 10 GAS. `tokens()` iterates in storage key order, which is not claim order; use `deeds(from, count)` to read the city in claim order.

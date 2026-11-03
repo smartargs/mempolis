@@ -7,12 +7,13 @@ fail() {
   exit 1
 }
 
-usage='Usage: ./deploy.sh <testnet|mainnet> <guestbook|credits|all> [--owner <address>] [--gate <public key>] [--rpc <url>] [--dry-run]
+usage='Usage: ./deploy.sh <testnet|mainnet> <guestbook|credits|deed|all> [--owner <address>] [--gate <public key>] [--treasury <address>] [--guestbook <hash>] [--styles <n>] [--rpc <url>] [--dry-run]
+       ./deploy.sh setup <testnet|mainnet> --plan <file> [--deed <hash>] [--rpc <url>] [--dry-run]
        ./deploy.sh wallet <name>'
 
 network=${1:-}
 case "$network" in
-  testnet | mainnet | wallet) ;;
+  testnet | mainnet | wallet | setup) ;;
   *) fail "$usage" ;;
 esac
 
@@ -55,6 +56,12 @@ if [ -f .env ]; then
   set -a
   . ./.env
   set +a
+fi
+
+if [ "$network" = setup ]; then
+  ./gradlew -q :deploy:installDist
+  shift
+  exec "$JAVA_HOME/bin/java" -cp 'deploy/build/install/deploy/lib/*' com.smartargs.mempolis.deploy.SetupCli "$@"
 fi
 
 changes=$(git status --porcelain -- . ':!deployments')

@@ -1,5 +1,5 @@
 export { addressToScriptHash, isAddress, scriptHashToAddress } from './address.ts';
-export { base64ToScriptHash, bytesToHex, hexToBytes } from './bytes.ts';
+export { base64ToBytes, base64ToScriptHash, bytesToHex, hexToBytes } from './bytes.ts';
 export { memoryCache, storageCache, type CacheHit, type JsonCache, type KeyValueStorage } from './cache.ts';
 export { createN3Client, type N3Client, type N3ClientOptions } from './client.ts';
 export { HttpError } from './http.ts';

@@ -10,4 +10,5 @@ rootProject.name = "mempolis-contracts-neo"
 include("testkit")
 include("guestbook")
 include("credits")
+include("deed")
 include("deploy")

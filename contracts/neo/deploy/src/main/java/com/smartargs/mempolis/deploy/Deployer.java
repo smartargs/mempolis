@@ -42,6 +42,12 @@ public final class Deployer {
      * contract gated by vouchers is given the {@code gate} public key along with its owner.
      */
     public DeploymentPlan plan(ContractArtifact artifact, Hash160 owner, Optional<ECPublicKey> gate) throws Throwable {
+        return plan(artifact, owner, gate, deployData(owner, gate));
+    }
+
+    /** Like {@link #plan(ContractArtifact, Hash160, Optional)}, handing the contract {@code data} on deploy. */
+    public DeploymentPlan plan(ContractArtifact artifact, Hash160 owner, Optional<ECPublicKey> gate, ContractParameter data)
+            throws Throwable {
         Hash160 hash = SmartContract.calcContractHash(sender.getScriptHash(), artifact.nef().getCheckSumAsInteger(),
                 artifact.name());
         if (isOnChain(hash)) {
@@ -49,7 +55,7 @@ public final class Deployer {
             return new DeploymentPlan(artifact, owner, gate, hash, Optional.empty());
         }
         byte[] script = new ContractManagement(neow3j)
-                .deploy(artifact.nef(), artifact.manifest(), deployData(owner, gate))
+                .deploy(artifact.nef(), artifact.manifest(), data)
                 .getScript();
         return new DeploymentPlan(artifact, owner, gate, hash, Optional.of(transactions.create(script)));
     }

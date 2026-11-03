@@ -22,7 +22,7 @@ class OptionsTest {
         Options options = parse("testnet", "all");
 
         assertThat(options.network()).isEqualTo(Network.TESTNET);
-        assertThat(options.modules()).containsExactly("guestbook", "credits");
+        assertThat(options.modules()).containsExactly("guestbook", "credits", "deed");
         assertThat(options.owner()).isEmpty();
         assertThat(options.rpc()).isEqualTo(Network.TESTNET.defaultRpc());
         assertThat(options.dryRun()).isFalse();

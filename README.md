@@ -85,7 +85,7 @@ pnpm lab
 
 ## Where it stands
 
-The look of the first two cities is set, and the homes, residents and live preview are built. The **Founders' beta** is open on Neo N3: the first residents sign an on-chain guestbook and are remembered for it. Neo X follows in a second round. Next:
+The look of the first two cities is set, and the homes, residents and live preview are built. The **Founders' beta** is open on Neo N3: the first residents sign an on-chain guestbook and are remembered for it. Neo X follows in a second round. The **catalog** shows everything a plot can show and how to get it. Next:
 
 1. **Claim your plot:** claiming mints a deed tied to your wallet.
 2. **Earn your rewards:** activity unlocks outfits, pets, bikes, cars and drones for your resident.
