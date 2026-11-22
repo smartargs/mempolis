@@ -38,11 +38,12 @@ import io.neow3j.devpack.events.Event4Args;
  * The Deeds of one Mempolis city: one soulbound NEP-11 token per wallet, standing for its home on a lot of the city's
  * plan. The plan's lots are registered append-only, each with a tier and a ring, so a registered lot never changes.
  * <p>
- * A wallet claims in one of three ways. A <b>free claim</b> takes the next lot of the published queue of standard lots
- * and the city's free house style; it needs a voucher from the gate key, unless the wallet is a founder in the
+ * A wallet claims in one of three ways. A <b>free claim</b> takes the next free lot of the published queue of standard
+ * lots and the city's free house style; it needs a voucher from the gate key, unless the wallet is a founder in the
  * city's guestbook. A <b>newcomer claim</b> gets the same lot by paying the newcomer fee in GAS. A <b>chosen claim</b>
- * pays its lot's tier price in GAS and picks a choice or prime lot inside the open rings and any house style. VIP lots
- * are reserved. Every payment is forwarded to the treasury at once, so the contract holds no funds.
+ * pays the chosen-lot price in GAS and picks any free standard lot inside the open rings and any house style; the
+ * queue skips a lot taken this way. VIP lots are reserved. Every payment is forwarded to the treasury at once, so the
+ * contract holds no funds.
  * <p>
  * The owner, set at deploy, registers lots and the queue, sets prices, opens rings and phases, replaces the gate key
  * and the treasury and updates the code. The guestbook is deploy data, so the manifest may call {@code numberOf} and
@@ -69,23 +70,17 @@ public class MempolisDeed {
     /** Phase in which every wallet can claim. */
     public static final int PHASE_OPEN = 2;
 
-    /** A standard lot, handed out by the queue. */
+    /** A standard lot, handed out by the queue or chosen at the chosen-lot price. */
     public static final int TIER_STANDARD = 1;
-    /** A choice lot, for sale at the choice price. */
-    public static final int TIER_CHOICE = 2;
-    /** A prime lot, for sale at the prime price. */
-    public static final int TIER_PRIME = 3;
     /** A VIP lot, reserved. */
-    public static final int TIER_VIP = 4;
+    public static final int TIER_VIP = 2;
 
     /** Price of a newcomer claim. */
     public static final int PRICE_NEWCOMER = 1;
-    /** Price of a choice lot. */
-    public static final int PRICE_CHOICE = 2;
-    /** Price of a prime lot. */
-    public static final int PRICE_PRIME = 3;
+    /** Price of a chosen claim, the same for every lot. */
+    public static final int PRICE_CHOSEN = 2;
     /** Price of a change of house style. */
-    public static final int PRICE_RESTYLE = 4;
+    public static final int PRICE_RESTYLE = 3;
 
     /** Payment data {@code [1]}: a newcomer claim. */
     public static final int PAY_NEWCOMER = 1;
@@ -282,7 +277,7 @@ public class MempolisDeed {
      * registered.
      *
      * @param first the next lot number, one above {@link #lotCount()}
-     * @param infos one byte per lot: its tier (1 to 4) plus 8 times its ring (0 to 15)
+     * @param infos one byte per lot: its tier (1 standard, 2 VIP) plus 8 times its ring (0 to 15)
      */
     public static void registerLots(int first, ByteString infos) {
         requireFirstCall();
@@ -306,7 +301,7 @@ public class MempolisDeed {
 
     /**
      * Appends standard lots to the free queue. Owner only. The queue is never reordered; a lot that is already taken
-     * when its place comes up, such as one queued twice, is skipped.
+     * when its place comes up, by a chosen claim or because it was queued twice, is skipped.
      *
      * @param first the next queue place, one above {@link #queueLength()}
      * @param lots registered standard lots
@@ -341,7 +336,7 @@ public class MempolisDeed {
     /**
      * Sets one price in GAS fractions; 0 stops that sale. Owner only.
      *
-     * @param kind {@link #PRICE_NEWCOMER}, {@link #PRICE_CHOICE}, {@link #PRICE_PRIME} or {@link #PRICE_RESTYLE}
+     * @param kind {@link #PRICE_NEWCOMER}, {@link #PRICE_CHOSEN} or {@link #PRICE_RESTYLE}
      * @param amount the price
      */
     public static void setPrice(int kind, int amount) {
@@ -566,7 +561,7 @@ public class MempolisDeed {
         return new StorageMap(Storage.getReadOnlyContext(), Keys.TAKEN).getIntOrZero(lot);
     }
 
-    /** The lot the next free or newcomer claim gets, or 0 when the queue is used up. */
+    /** The lot the next free or newcomer claim gets, skipping taken lots, or 0 when the queue is used up. */
     @Safe
     public static int nextFreeLot() {
         return queueAt(nextFreePlace());
@@ -679,11 +674,10 @@ public class MempolisDeed {
         int tier = tierOf(lot);
         if (tier == 0) Helper.abort("DD: bad lot");
         if (tier == TIER_VIP) Helper.abort("DD: vip reserved");
-        if (tier == TIER_STANDARD) Helper.abort("DD: lot not for sale");
         if (ringOf(lot) > openRing()) Helper.abort("DD: ring closed");
         if (claimOn(lot) != 0) Helper.abort("DD: lot taken");
         requireStyle(style);
-        requirePrice(tier == TIER_CHOICE ? PRICE_CHOICE : PRICE_PRIME, amount);
+        requirePrice(PRICE_CHOSEN, amount);
 
         mint(Storage.getStorageContext(), wallet, lot, style, founder);
     }

@@ -113,17 +113,17 @@ The addresses are in `deployments/<network>.json`. Check out the tag the deploye
 
 ## Deeds
 
-Claiming a plot mints one Deed per wallet. It cannot be transferred: `transfer` always aborts. The token id is the claim number. The city's lots are registered append-only, one byte each: the tier (1 standard, 2 choice, 3 prime, 4 VIP) plus 8 times the ring from the centre. A registered lot never changes.
+Claiming a plot mints one Deed per wallet. It cannot be transferred: `transfer` always aborts. The token id is the claim number. The city's lots are registered append-only, one byte each: the tier (1 standard, 2 VIP) plus 8 times the ring from the centre. A registered lot never changes.
 
 | Method | Who | What |
 | --- | --- | --- |
 | `claim(wallet, voucher)` | The wallet | Free claim: the next lot of the queue in the free house style; needs a voucher unless the wallet is a founder |
 | GAS transfer with `[1]` | The wallet | Newcomer claim: the same, for the newcomer fee |
-| GAS transfer with `[2, lot, style]` | The wallet | Chosen claim: a free choice or prime lot inside the open rings, in any house style, for its tier's price |
+| GAS transfer with `[2, lot, style]` | The wallet | Chosen claim: any free standard lot inside the open rings, in any house style, for the one chosen-lot price |
 | GAS transfer with `[3, style]` | The holder | Changes the house style, for the restyle price |
 | `setLook(wallet, look)`, `setStatus(wallet, status)` | The holder | The resident's look (1 to 16 bytes) and speech-bubble line (up to 112 bytes) |
 | `registerLots(first, infos)`, `queueLots(first, lots)` | Owner | Appends lots to the registry and standard lots to the free queue |
-| `setPrice(kind, amount)` | Owner | Newcomer fee (1), choice (2), prime (3) or restyle (4) price in GAS fractions; 0 stops that sale |
+| `setPrice(kind, amount)` | Owner | Newcomer fee (1), chosen-lot (2) or restyle (3) price in GAS fractions; 0 stops that sale |
 | `openRingUpTo(ring)`, `setPhase(phase)`, `setStyleCount(n)` | Owner | Opens rings outward, moves from closed (0) to founders (1) to open (2), adds house styles; none of them goes back |
 | `setGate(gate)`, `setTreasury(treasury)`, `update(nef, manifest, data)` | Owner | Replaces the voucher key, the treasury, or the code |
 | `numberOf`, `deedAt`, `deeds(from, count)`, `tierOf`, `ringOf`, `claimOn`, `nextFreeLot`, `queueAt`, `priceOf`, ... | Anyone | State of the city, plus the NEP-11 reads |
@@ -133,8 +133,8 @@ Claiming a plot mints one Deed per wallet. It cannot be transferred: `transfer` 
 - **Payments.** Every payment must come from GAS and match its price exactly, and it is forwarded to the treasury in the same transaction, so the contract never holds funds. VIP lots are reserved and cannot be bought.
 - **Vouchers** are signed like the guestbook's, over the deed contract's own hash and the wallet, followed by the network's magic number as a NeoVM integer, so neither a guestbook voucher nor one for another network can claim.
 - **Payment data** values are turned into plain integers before use, so a lot sent as raw bytes cannot slip past the taken-lot check.
-- **The free queue** skips a lot that is already taken when its place comes up, so a lot queued twice is handed out once.
+- **The free queue** skips a lot that is already taken when its place comes up, so a lot a Supporter chose first, or one queued twice, is never handed out again.
 
 Events: NEP-11 `Transfer` on mint, `Claimed(wallet, number, lot, style)`, `StyleChanged`, `LookChanged`, `StatusChanged`, `LotsRegistered`, `LotsQueued`, `PriceChanged`, `RingOpened`, `PhaseChanged`, `StylesChanged`, `TreasuryChanged` and `GateChanged`.
 
-Lots and queue places are stored in chunks of 200 bytes, so registering the Sprawl's 1,083 lots and 737 queue places costs about 10 GAS. `tokens()` iterates in storage key order, which is not claim order; use `deeds(from, count)` to read the city in claim order.
+Lots and queue places are stored in chunks of 200 bytes, so registering the Sprawl's 1,083 lots and its free queue costs about 10 GAS. `tokens()` iterates in storage key order, which is not claim order; use `deeds(from, count)` to read the city in claim order.

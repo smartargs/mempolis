@@ -21,9 +21,9 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import java.math.BigInteger;
 import java.util.List;
 
-import static com.smartargs.mempolis.deed.DeedFixture.CHOICE_PRICE;
+import static com.smartargs.mempolis.deed.DeedFixture.CHOSEN_PRICE;
 import static com.smartargs.mempolis.deed.DeedFixture.NEWCOMER_FEE;
-import static com.smartargs.mempolis.deed.DeedFixture.RING_0_CHOICE;
+import static com.smartargs.mempolis.deed.DeedFixture.RING_0_UNQUEUED;
 import static com.smartargs.mempolis.deed.DeedFixture.STYLES;
 import static com.smartargs.mempolis.deed.DeedFixture.chosen;
 import static com.smartargs.mempolis.deed.DeedFixture.deedVoucher;
@@ -129,17 +129,17 @@ public class DeedFoundersPhaseTest {
 
     @Test
     void payingForAChosenClaim_byAWalletThatIsNoFounder_aborts() throws Throwable {
-        assertAborted(pay(neow3j, deed, fundedAccount(neow3j, ext), CHOICE_PRICE, chosen(RING_0_CHOICE, 2)),
+        assertAborted(pay(neow3j, deed, fundedAccount(neow3j, ext), CHOSEN_PRICE, chosen(RING_0_UNQUEUED, 2)),
                 "DD: founders only", neow3j);
     }
 
     @Test
     void payingForAChosenClaim_byAFounder_mintsTheChosenLotAndStyle() throws Throwable {
-        assertHalted(pay(neow3j, deed, secondFounder, CHOICE_PRICE, chosen(RING_0_CHOICE, 2)), neow3j);
+        assertHalted(pay(neow3j, deed, secondFounder, CHOSEN_PRICE, chosen(RING_0_UNQUEUED, 2)), neow3j);
 
         BigInteger number = read(deed, "numberOf", hash160(secondFounder)).getInteger();
         List<StackItem> held = read(deed, "deedAt", integer(number)).getList();
-        assertThat(held.get(2).getInteger()).isEqualTo(BigInteger.valueOf(RING_0_CHOICE));
+        assertThat(held.get(2).getInteger()).isEqualTo(BigInteger.valueOf(RING_0_UNQUEUED));
         assertThat(held.get(3).getInteger()).isEqualTo(BigInteger.TWO);
         assertThat(held.get(4).getInteger()).isEqualTo(read(guestbook, "numberOf", hash160(secondFounder)).getInteger());
     }

@@ -28,9 +28,9 @@ import java.math.BigInteger;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.smartargs.mempolis.deed.DeedFixture.CHOICE;
+import static com.smartargs.mempolis.deed.DeedFixture.VIP;
 import static com.smartargs.mempolis.deed.DeedFixture.NEWCOMER_FEE;
-import static com.smartargs.mempolis.deed.DeedFixture.PRICE_CHOICE;
+import static com.smartargs.mempolis.deed.DeedFixture.PRICE_CHOSEN;
 import static com.smartargs.mempolis.deed.DeedFixture.STANDARD;
 import static com.smartargs.mempolis.deed.DeedFixture.STYLES;
 import static com.smartargs.mempolis.deed.DeedFixture.deedVoucher;
@@ -162,14 +162,14 @@ public class DeedSetupTest {
     @Test
     void registerLots_storesTierAndRingOfEachLotAndFiresTheRange() throws Throwable {
         SmartContract fresh = freshDeed();
-        byte[] infos = {info(STANDARD, 0), info(CHOICE, 3), info(4, 15)};
+        byte[] infos = {info(STANDARD, 0), info(STANDARD, 3), info(VIP, 15)};
 
         NeoApplicationLog.Execution execution = assertHalted(send(fresh, "registerLots", owner, integer(1), byteArray(infos)), neow3j);
 
         assertThat(read(fresh, "lotCount").getInteger()).isEqualTo(BigInteger.valueOf(3));
-        assertThat(read(fresh, "tierOf", integer(2)).getInteger()).isEqualTo(BigInteger.valueOf(CHOICE));
+        assertThat(read(fresh, "tierOf", integer(2)).getInteger()).isEqualTo(BigInteger.valueOf(STANDARD));
         assertThat(read(fresh, "ringOf", integer(2)).getInteger()).isEqualTo(BigInteger.valueOf(3));
-        assertThat(read(fresh, "tierOf", integer(3)).getInteger()).isEqualTo(BigInteger.valueOf(4));
+        assertThat(read(fresh, "tierOf", integer(3)).getInteger()).isEqualTo(BigInteger.valueOf(VIP));
         assertThat(read(fresh, "ringOf", integer(3)).getInteger()).isEqualTo(BigInteger.valueOf(15));
         assertThat(read(fresh, "tierOf", integer(4)).getInteger()).isZero();
         Notification registered = execution.getNotifications().get(0);
@@ -183,7 +183,7 @@ public class DeedSetupTest {
         SmartContract fresh = freshDeed();
         assertHalted(send(fresh, "registerLots", owner, integer(1), byteArray(new byte[]{info(STANDARD, 0)})), neow3j);
 
-        assertHalted(send(fresh, "registerLots", owner, integer(2), byteArray(new byte[]{info(CHOICE, 1)})), neow3j);
+        assertHalted(send(fresh, "registerLots", owner, integer(2), byteArray(new byte[]{info(VIP, 1)})), neow3j);
 
         assertThat(read(fresh, "lotCount").getInteger()).isEqualTo(BigInteger.TWO);
         assertThat(read(fresh, "tierOf", integer(1)).getInteger()).isEqualTo(BigInteger.valueOf(STANDARD));
@@ -194,7 +194,7 @@ public class DeedSetupTest {
         SmartContract fresh = freshDeed();
         assertHalted(send(fresh, "registerLots", owner, integer(1), byteArray(new byte[]{info(STANDARD, 0)})), neow3j);
 
-        assertAborted(send(fresh, "registerLots", owner, integer(1), byteArray(new byte[]{info(CHOICE, 0)})),
+        assertAborted(send(fresh, "registerLots", owner, integer(1), byteArray(new byte[]{info(VIP, 0)})),
                 "DD: bad first lot", neow3j);
 
         assertThat(read(fresh, "tierOf", integer(1)).getInteger()).isEqualTo(BigInteger.valueOf(STANDARD));
@@ -224,8 +224,9 @@ public class DeedSetupTest {
     }
 
     @Test
-    void registerLots_withTierFive_aborts() throws Throwable {
-        assertAborted(send(deed, "registerLots", owner, integer(1), byteArray(new byte[]{5})), "DD: bad lot info", neow3j);
+    void registerLots_withATierAboveVip_aborts() throws Throwable {
+        assertAborted(send(deed, "registerLots", owner, integer(1), byteArray(new byte[]{3})), "DD: bad lot info", neow3j);
+        assertAborted(send(deed, "registerLots", owner, integer(1), byteArray(new byte[]{7})), "DD: bad lot info", neow3j);
     }
 
     @Test
@@ -259,7 +260,7 @@ public class DeedSetupTest {
     void registerAndQueue_acrossChunkBoundaries_keepEveryLotAndPlace() throws Throwable {
         SmartContract fresh = freshDeed();
         byte[] first = new byte[150], second = new byte[130];
-        for (int i = 0; i < first.length; i++) first[i] = info(i % 5 == 0 ? CHOICE : STANDARD, i % 16);
+        for (int i = 0; i < first.length; i++) first[i] = info(i % 5 == 0 ? VIP : STANDARD, i % 16);
         for (int i = 0; i < second.length; i++) second[i] = info(STANDARD, (150 + i) % 16);
         assertHalted(send(fresh, "registerLots", owner, integer(1), byteArray(first)), neow3j);
         assertHalted(send(fresh, "registerLots", owner, integer(151), byteArray(second)), neow3j);
@@ -269,7 +270,7 @@ public class DeedSetupTest {
         assertHalted(send(fresh, "queueLots", owner, integer(151), lots(tail)), neow3j);
 
         for (int lot : new int[]{1, 2, 150, 151, 200, 201, 280}) {
-            int tier = lot > 150 || (lot - 1) % 5 != 0 ? STANDARD : CHOICE, ring = (lot - 1) % 16;
+            int tier = lot > 150 || (lot - 1) % 5 != 0 ? STANDARD : VIP, ring = (lot - 1) % 16;
             assertThat(read(fresh, "tierOf", integer(lot)).getInteger()).as("tier of " + lot).isEqualTo(BigInteger.valueOf(tier));
             assertThat(read(fresh, "ringOf", integer(lot)).getInteger()).as("ring of " + lot).isEqualTo(BigInteger.valueOf(ring));
         }
@@ -281,9 +282,9 @@ public class DeedSetupTest {
     }
 
     @Test
-    void queueLots_aChoiceLot_aborts() throws Throwable {
+    void queueLots_aVipLot_aborts() throws Throwable {
         SmartContract fresh = freshDeed();
-        assertHalted(send(fresh, "registerLots", owner, integer(1), byteArray(new byte[]{info(CHOICE, 0)})), neow3j);
+        assertHalted(send(fresh, "registerLots", owner, integer(1), byteArray(new byte[]{info(VIP, 0)})), neow3j);
 
         assertAborted(send(fresh, "queueLots", owner, integer(1), lots(1)), "DD: not a standard lot", neow3j);
     }
@@ -312,31 +313,31 @@ public class DeedSetupTest {
     void setPrice_storesThePriceAndFiresIt() throws Throwable {
         SmartContract fresh = freshDeed();
 
-        NeoApplicationLog.Execution execution = assertHalted(send(fresh, "setPrice", owner, integer(PRICE_CHOICE), integer(123)), neow3j);
+        NeoApplicationLog.Execution execution = assertHalted(send(fresh, "setPrice", owner, integer(PRICE_CHOSEN), integer(123)), neow3j);
 
-        assertThat(read(fresh, "priceOf", integer(PRICE_CHOICE)).getInteger()).isEqualTo(BigInteger.valueOf(123));
+        assertThat(read(fresh, "priceOf", integer(PRICE_CHOSEN)).getInteger()).isEqualTo(BigInteger.valueOf(123));
         assertThat(execution.getNotifications().get(0).getEventName()).isEqualTo("PriceChanged");
     }
 
     @Test
     void setPrice_ofAnUnknownKind_aborts() throws Throwable {
         assertAborted(send(deed, "setPrice", owner, integer(0), integer(1)), "DD: bad price kind", neow3j);
-        assertAborted(send(deed, "setPrice", owner, integer(5), integer(1)), "DD: bad price kind", neow3j);
+        assertAborted(send(deed, "setPrice", owner, integer(4), integer(1)), "DD: bad price kind", neow3j);
     }
 
     @Test
     void setPrice_belowZero_aborts() throws Throwable {
-        assertAborted(send(deed, "setPrice", owner, integer(PRICE_CHOICE), integer(-1)), "DD: bad amount", neow3j);
+        assertAborted(send(deed, "setPrice", owner, integer(PRICE_CHOSEN), integer(-1)), "DD: bad amount", neow3j);
     }
 
     @Test
     void setPrice_byAStranger_aborts() throws Throwable {
-        assertAborted(send(deed, "setPrice", stranger, integer(PRICE_CHOICE), integer(0)), "DD: not owner", neow3j);
+        assertAborted(send(deed, "setPrice", stranger, integer(PRICE_CHOSEN), integer(0)), "DD: not owner", neow3j);
     }
 
     @Test
     void setPrice_twiceInOneTransaction_aborts() throws Throwable {
-        List<ContractParameter> price = List.of(integer(PRICE_CHOICE), integer(1));
+        List<ContractParameter> price = List.of(integer(PRICE_CHOSEN), integer(1));
         assertAborted(sendTwice(neow3j, deed, "setPrice", price, price, AccountSigner.calledByEntry(owner)),
                 "DD: re-entry", neow3j);
     }

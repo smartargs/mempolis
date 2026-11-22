@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * A city's lot registry as the deed contract takes it, exported from the city plan.
  *
- * @param lots one registry byte per lot, from lot 1: its tier (1 to 4) plus 8 times its ring
+ * @param lots one registry byte per lot, from lot 1: its tier (1 standard, 2 VIP) plus 8 times its ring
  * @param queue the standard lots in the order free claims get them
  */
 public record CityPlanFile(List<Integer> lots, List<Integer> queue) {
@@ -22,7 +22,7 @@ public record CityPlanFile(List<Integer> lots, List<Integer> queue) {
         if (plan.lots() == null || plan.queue() == null) throw new IllegalArgumentException(file + " needs lots and queue.");
         for (int info : plan.lots()) {
             int tier = info & 7;
-            if (info < 1 || info > MAX_INFO || tier < 1 || tier > 4) throw new IllegalArgumentException("Bad lot info " + info);
+            if (info < 1 || info > MAX_INFO || tier < 1 || tier > 2) throw new IllegalArgumentException("Bad lot info " + info);
         }
         for (int lot : plan.queue()) {
             if (lot < 1 || lot > plan.lots().size() || (plan.lots().get(lot - 1) & 7) != 1) {

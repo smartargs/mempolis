@@ -25,20 +25,16 @@ import static io.neow3j.types.ContractParameter.publicKey;
 final class DeedFixture {
 
     static final int STANDARD = 1;
-    static final int CHOICE = 2;
-    static final int PRIME = 3;
-    static final int VIP = 4;
+    static final int VIP = 2;
 
     static final int PRICE_NEWCOMER = 1;
-    static final int PRICE_CHOICE = 2;
-    static final int PRICE_PRIME = 3;
-    static final int PRICE_RESTYLE = 4;
+    static final int PRICE_CHOSEN = 2;
+    static final int PRICE_RESTYLE = 3;
 
     static final int STYLES = 4;
 
     static final BigInteger NEWCOMER_FEE = BigInteger.valueOf(50_000_000);
-    static final BigInteger CHOICE_PRICE = BigInteger.valueOf(300_000_000);
-    static final BigInteger PRIME_PRICE = BigInteger.valueOf(900_000_000);
+    static final BigInteger CHOSEN_PRICE = BigInteger.valueOf(300_000_000);
     static final BigInteger RESTYLE_PRICE = BigInteger.valueOf(20_000_000);
 
     static final int[][] PLAN = plan();
@@ -46,21 +42,16 @@ final class DeedFixture {
     static final int[] QUEUE = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
             28, 29, 30, 31, 32, 33, 34};
 
-    static final int RING_0_CHOICE = 21;
-    static final int RING_0_PRIME = 25;
+    static final int RING_0_UNQUEUED = 21;
     static final int RING_0_VIP = 27;
-    static final int RING_0_STANDARD = 5;
-    static final int RING_2_CHOICE = 39;
-    static final int RING_2_STANDARD = 40;
+    static final int RING_2_UNQUEUED = 39;
 
     private DeedFixture() {}
 
     private static int[][] plan() {
         int[][] plan = new int[40][];
         for (int lot = 1; lot <= 40; lot++) {
-            int tier = lot <= 20 || (lot >= 28 && lot <= 34) || lot == 40 ? STANDARD
-                    : (lot <= 24 || (lot >= 35 && lot <= 37) || lot == 39) ? CHOICE
-                    : lot == 27 ? VIP : PRIME;
+            int tier = lot == 27 ? VIP : STANDARD;
             int ring = lot <= 27 ? 0 : lot <= 38 ? 1 : 2;
             plan[lot - 1] = new int[]{tier, ring};
         }
@@ -94,8 +85,7 @@ final class DeedFixture {
 
     static void setPrices(SmartContract deed, Account owner, Neow3j neow3j) throws Throwable {
         assertHalted(send(deed, "setPrice", owner, integer(PRICE_NEWCOMER), integer(NEWCOMER_FEE)), neow3j);
-        assertHalted(send(deed, "setPrice", owner, integer(PRICE_CHOICE), integer(CHOICE_PRICE)), neow3j);
-        assertHalted(send(deed, "setPrice", owner, integer(PRICE_PRIME), integer(PRIME_PRICE)), neow3j);
+        assertHalted(send(deed, "setPrice", owner, integer(PRICE_CHOSEN), integer(CHOSEN_PRICE)), neow3j);
         assertHalted(send(deed, "setPrice", owner, integer(PRICE_RESTYLE), integer(RESTYLE_PRICE)), neow3j);
     }
 

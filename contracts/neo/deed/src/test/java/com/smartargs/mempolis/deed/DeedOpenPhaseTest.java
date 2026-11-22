@@ -28,15 +28,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
-import static com.smartargs.mempolis.deed.DeedFixture.CHOICE_PRICE;
+import static com.smartargs.mempolis.deed.DeedFixture.CHOSEN_PRICE;
 import static com.smartargs.mempolis.deed.DeedFixture.NEWCOMER_FEE;
-import static com.smartargs.mempolis.deed.DeedFixture.PRIME_PRICE;
 import static com.smartargs.mempolis.deed.DeedFixture.RESTYLE_PRICE;
-import static com.smartargs.mempolis.deed.DeedFixture.RING_0_CHOICE;
-import static com.smartargs.mempolis.deed.DeedFixture.RING_0_PRIME;
-import static com.smartargs.mempolis.deed.DeedFixture.RING_0_STANDARD;
+import static com.smartargs.mempolis.deed.DeedFixture.RING_0_UNQUEUED;
 import static com.smartargs.mempolis.deed.DeedFixture.RING_0_VIP;
-import static com.smartargs.mempolis.deed.DeedFixture.RING_2_CHOICE;
+import static com.smartargs.mempolis.deed.DeedFixture.RING_2_UNQUEUED;
 import static com.smartargs.mempolis.deed.DeedFixture.STANDARD;
 import static com.smartargs.mempolis.deed.DeedFixture.STYLES;
 import static com.smartargs.mempolis.deed.DeedFixture.chosen;
@@ -190,21 +187,21 @@ public class DeedOpenPhaseTest {
 
     @Test
     void payingForATakenLot_withTheLotAsRawBytes_stillAborts() throws Throwable {
-        int lot = RING_0_CHOICE + 1;
-        assertHalted(pay(neow3j, deed, fundedAccount(neow3j, ext), CHOICE_PRICE, chosen(lot, 0)), neow3j);
+        int lot = RING_0_UNQUEUED + 1;
+        assertHalted(pay(neow3j, deed, fundedAccount(neow3j, ext), CHOSEN_PRICE, chosen(lot, 0)), neow3j);
 
         ContractParameter asBytes = array(integer(2), byteArray(new byte[]{(byte) lot, 0}), integer(0));
         ContractParameter canonical = array(integer(2), byteArray(new byte[]{(byte) lot}), byteArray(new byte[]{1}));
-        assertAborted(pay(neow3j, deed, fundedAccount(neow3j, ext), CHOICE_PRICE, asBytes), "DD: lot taken", neow3j);
-        assertAborted(pay(neow3j, deed, fundedAccount(neow3j, ext), CHOICE_PRICE, canonical), "DD: lot taken", neow3j);
+        assertAborted(pay(neow3j, deed, fundedAccount(neow3j, ext), CHOSEN_PRICE, asBytes), "DD: lot taken", neow3j);
+        assertAborted(pay(neow3j, deed, fundedAccount(neow3j, ext), CHOSEN_PRICE, canonical), "DD: lot taken", neow3j);
     }
 
     @Test
     void payingForALot_withTheLotAndStyleAsRawBytes_mintsThemAsNumbers() throws Throwable {
         Account wallet = fundedAccount(neow3j, ext);
-        int lot = RING_0_PRIME + 1;
+        int lot = RING_0_UNQUEUED + 5;
 
-        assertHalted(pay(neow3j, deed, wallet, PRIME_PRICE, array(integer(2), byteArray(new byte[]{(byte) lot, 0}), byteArray(new byte[]{2, 0}))), neow3j);
+        assertHalted(pay(neow3j, deed, wallet, CHOSEN_PRICE, array(integer(2), byteArray(new byte[]{(byte) lot, 0}), byteArray(new byte[]{2, 0}))), neow3j);
 
         BigInteger number = read(deed, "numberOf", hash160(wallet)).getInteger();
         assertThat(read(deed, "claimOn", integer(lot)).getInteger()).isEqualTo(number);
@@ -240,7 +237,7 @@ public class DeedOpenPhaseTest {
 
         assertAborted(freeClaim(deed, wallet), "DD: already claimed", neow3j);
         assertAborted(pay(neow3j, deed, wallet, NEWCOMER_FEE, newcomer()), "DD: already claimed", neow3j);
-        assertAborted(pay(neow3j, deed, wallet, CHOICE_PRICE, chosen(RING_0_CHOICE + 1, 0)), "DD: already claimed", neow3j);
+        assertAborted(pay(neow3j, deed, wallet, CHOSEN_PRICE, chosen(RING_0_UNQUEUED + 1, 0)), "DD: already claimed", neow3j);
     }
 
     @Test
@@ -277,68 +274,62 @@ public class DeedOpenPhaseTest {
     }
 
     @Test
-    void payingForAChoiceLot_mintsThatLotInTheChosenStyleAndForwardsThePrice() throws Throwable {
+    void payingForALot_mintsThatLotInTheChosenStyleAndForwardsTheChosenPrice() throws Throwable {
         Account wallet = fundedAccount(neow3j, ext);
         BigInteger treasuryBefore = gasOf(treasury.getScriptHash());
 
-        assertHalted(pay(neow3j, deed, wallet, CHOICE_PRICE, chosen(RING_0_CHOICE, 3)), neow3j);
+        assertHalted(pay(neow3j, deed, wallet, CHOSEN_PRICE, chosen(RING_0_UNQUEUED, 3)), neow3j);
 
         BigInteger number = read(deed, "numberOf", hash160(wallet)).getInteger();
         List<StackItem> held = read(deed, "deedAt", integer(number)).getList();
-        assertThat(held.get(2).getInteger()).isEqualTo(BigInteger.valueOf(RING_0_CHOICE));
+        assertThat(held.get(2).getInteger()).isEqualTo(BigInteger.valueOf(RING_0_UNQUEUED));
         assertThat(held.get(3).getInteger()).isEqualTo(BigInteger.valueOf(3));
-        assertThat(gasOf(treasury.getScriptHash())).isEqualTo(treasuryBefore.add(CHOICE_PRICE));
+        assertThat(gasOf(treasury.getScriptHash())).isEqualTo(treasuryBefore.add(CHOSEN_PRICE));
         assertThat(gasOf(deed.getScriptHash())).isZero();
     }
 
     @Test
-    void payingForAPrimeLot_mintsItAtThePrimePrice() throws Throwable {
+    void payingForALot_withAnyOtherAmountThanTheChosenPrice_aborts() throws Throwable {
         Account wallet = fundedAccount(neow3j, ext);
+        int lot = RING_0_UNQUEUED + 4;
 
-        assertAborted(pay(neow3j, deed, wallet, CHOICE_PRICE, chosen(RING_0_PRIME, 1)), "DD: wrong amount", neow3j);
-        assertHalted(pay(neow3j, deed, wallet, PRIME_PRICE, chosen(RING_0_PRIME, 1)), neow3j);
-
-        assertThat(read(deed, "claimOn", integer(RING_0_PRIME)).getInteger()).isEqualTo(read(deed, "numberOf", hash160(wallet)).getInteger());
+        assertAborted(pay(neow3j, deed, wallet, CHOSEN_PRICE.subtract(BigInteger.ONE), chosen(lot, 1)), "DD: wrong amount", neow3j);
+        assertAborted(pay(neow3j, deed, wallet, CHOSEN_PRICE.add(BigInteger.ONE), chosen(lot, 1)), "DD: wrong amount", neow3j);
+        assertThat(read(deed, "claimOn", integer(lot)).getInteger()).isZero();
     }
 
     @Test
     void payingForATakenLot_aborts() throws Throwable {
         Account first = fundedAccount(neow3j, ext);
         Account second = fundedAccount(neow3j, ext);
-        int lot = RING_0_CHOICE + 2;
-        assertHalted(pay(neow3j, deed, first, CHOICE_PRICE, chosen(lot, 0)), neow3j);
+        int lot = RING_0_UNQUEUED + 2;
+        assertHalted(pay(neow3j, deed, first, CHOSEN_PRICE, chosen(lot, 0)), neow3j);
 
-        assertAborted(pay(neow3j, deed, second, CHOICE_PRICE, chosen(lot, 0)), "DD: lot taken", neow3j);
+        assertAborted(pay(neow3j, deed, second, CHOSEN_PRICE, chosen(lot, 0)), "DD: lot taken", neow3j);
     }
 
     @Test
     void payingForAVipLot_abortsBecauseVipLotsAreReserved() throws Throwable {
-        assertAborted(pay(neow3j, deed, fundedAccount(neow3j, ext), PRIME_PRICE, chosen(RING_0_VIP, 0)), "DD: vip reserved", neow3j);
-    }
-
-    @Test
-    void payingForAStandardLot_abortsBecauseOnlyTheQueueHandsThemOut() throws Throwable {
-        assertAborted(pay(neow3j, deed, fundedAccount(neow3j, ext), CHOICE_PRICE, chosen(RING_0_STANDARD, 0)),
-                "DD: lot not for sale", neow3j);
+        assertAborted(pay(neow3j, deed, fundedAccount(neow3j, ext), CHOSEN_PRICE, chosen(RING_0_VIP, 0)), "DD: vip reserved", neow3j);
     }
 
     @Test
     void payingForAnUnregisteredLot_aborts() throws Throwable {
-        assertAborted(pay(neow3j, deed, fundedAccount(neow3j, ext), CHOICE_PRICE, chosen(41, 0)), "DD: bad lot", neow3j);
-        assertAborted(pay(neow3j, deed, fundedAccount(neow3j, ext), CHOICE_PRICE, chosen(-1, 0)), "DD: bad lot", neow3j);
+        assertAborted(pay(neow3j, deed, fundedAccount(neow3j, ext), CHOSEN_PRICE, chosen(41, 0)), "DD: bad lot", neow3j);
+        assertAborted(pay(neow3j, deed, fundedAccount(neow3j, ext), CHOSEN_PRICE, chosen(-1, 0)), "DD: bad lot", neow3j);
     }
 
     @Test
     void payingForALotInAnUnopenedRing_aborts() throws Throwable {
-        assertAborted(pay(neow3j, deed, fundedAccount(neow3j, ext), CHOICE_PRICE, chosen(RING_2_CHOICE, 0)), "DD: ring closed", neow3j);
+        assertAborted(pay(neow3j, deed, fundedAccount(neow3j, ext), CHOSEN_PRICE, chosen(RING_2_UNQUEUED, 0)), "DD: ring closed", neow3j);
     }
 
     @Test
     void payingForALot_inAStyleThatDoesNotExist_aborts() throws Throwable {
         Account wallet = fundedAccount(neow3j, ext);
 
-        assertAborted(pay(neow3j, deed, wallet, CHOICE_PRICE, chosen(RING_0_CHOICE + 3, STYLES)), "DD: bad style", neow3j);
-        assertAborted(pay(neow3j, deed, wallet, CHOICE_PRICE, chosen(RING_0_CHOICE + 3, -1)), "DD: bad style", neow3j);
+        assertAborted(pay(neow3j, deed, wallet, CHOSEN_PRICE, chosen(RING_0_UNQUEUED + 3, STYLES)), "DD: bad style", neow3j);
+        assertAborted(pay(neow3j, deed, wallet, CHOSEN_PRICE, chosen(RING_0_UNQUEUED + 3, -1)), "DD: bad style", neow3j);
     }
 
     @Test
@@ -353,7 +344,7 @@ public class DeedOpenPhaseTest {
         assertAborted(pay(neow3j, deed, wallet, NEWCOMER_FEE, array()), "DD: bad data", neow3j);
         assertAborted(pay(neow3j, deed, wallet, NEWCOMER_FEE, array(integer(9))), "DD: bad data", neow3j);
         assertAborted(pay(neow3j, deed, wallet, NEWCOMER_FEE, array(integer(1), integer(1))), "DD: bad data", neow3j);
-        assertAborted(pay(neow3j, deed, wallet, CHOICE_PRICE, array(integer(2), integer(RING_0_CHOICE))), "DD: bad data", neow3j);
+        assertAborted(pay(neow3j, deed, wallet, CHOSEN_PRICE, array(integer(2), integer(RING_0_UNQUEUED))), "DD: bad data", neow3j);
         assertAborted(pay(neow3j, deed, wallet, RESTYLE_PRICE, array(integer(3))), "DD: bad data", neow3j);
     }
 
@@ -529,6 +520,31 @@ public class DeedOpenPhaseTest {
         assertThat(read(fresh, "claimOn", integer(1)).getInteger()).isEqualTo(read(fresh, "numberOf", hash160(first)).getInteger());
         assertThat(read(fresh, "claimOn", integer(2)).getInteger()).isEqualTo(read(fresh, "numberOf", hash160(second)).getInteger());
         assertThat(read(fresh, "nextFreeLot").getInteger()).isZero();
+    }
+
+    @Test
+    void payingForAQueuedLot_mintsItAndTheQueueSkipsItForTheNextFreeClaim() throws Throwable {
+        SmartContract fresh = smallCity(new byte[]{info(STANDARD, 0), info(STANDARD, 0)}, 1, 2);
+        Account supporter = fundedAccount(neow3j, ext), free = fundedAccount(neow3j, ext);
+
+        assertHalted(pay(neow3j, fresh, supporter, CHOSEN_PRICE, chosen(1, 2)), neow3j);
+
+        assertThat(read(fresh, "claimOn", integer(1)).getInteger()).isEqualTo(read(fresh, "numberOf", hash160(supporter)).getInteger());
+        assertThat(read(fresh, "nextFreeLot").getInteger()).isEqualTo(BigInteger.TWO);
+        assertHalted(freeClaim(fresh, free), neow3j);
+        assertThat(read(fresh, "claimOn", integer(2)).getInteger()).isEqualTo(read(fresh, "numberOf", hash160(free)).getInteger());
+        assertThat(read(fresh, "nextFreeLot").getInteger()).isZero();
+    }
+
+    @Test
+    void freeClaims_skippingABoughtLot_openTheRingOfTheLotTheyGet() throws Throwable {
+        SmartContract fresh = smallCity(new byte[]{info(STANDARD, 0), info(STANDARD, 1)}, 1, 2);
+        assertHalted(pay(neow3j, fresh, fundedAccount(neow3j, ext), CHOSEN_PRICE, chosen(1, 0)), neow3j);
+
+        assertHalted(freeClaim(fresh, fundedAccount(neow3j, ext)), neow3j);
+
+        assertThat(read(fresh, "claimOn", integer(2)).getInteger()).isNotZero();
+        assertThat(read(fresh, "openRing").getInteger()).isEqualTo(BigInteger.ONE);
     }
 
     @Test
